@@ -26,10 +26,10 @@ x10ind	stx	,--s	; 5	;int16_t x10inD(int16_t x) {
 	rts		; 2 (35);} // x10inD()
 
 ;;; convert a Y-digit unsigned BCD 0..32767 to binary unsigned in X, copy Y to D
-d0to32k	ldx	#$0000	; 3	;uint16_t d0to32k(uint3_t y, uint8_t* s) {
-	sty	,--s	; 9	; uint16_t x, d = y; // digit count y <= 5
-	beq	2f	; 3	; for (x = 0x0000; y; y--) {
-1	jsr	x10ind	; 8 (43);
+d0to32k	ldx	#$0000	; 3	;uint16_t d0to32k(uint3_t y,
+	sty	,--s	; 9	;                 uint8_t* s) {
+	beq	2f	; 3	; uint16_t x, d = y; // digit count y <= 5
+1	jsr	x10ind	; 8 (43); for (x = 0x0000; y; y--) {
 	leax	4,s	; 5 	;  // d is now x*10, x is now the digit pointer
 	exg	d,x	; 7	;  x *= 10; // d is now the digit pointer
 	ldb	d,y	; 8	;  uint8_t b = s[ /* 4 + */ y];
@@ -40,9 +40,11 @@ d0to32k	ldx	#$0000	; 3	;uint16_t d0to32k(uint3_t y, uint8_t* s) {
 	rts		; 2(395);} // d0to32k()
 
 ;;; convert a Y-digit signed BCD -32767..32767 to binary signed in X,copy Y to D
-d16sgnd	jsr	d0to32k	; 8(403);int16_t d16sgnd(uint1_t n, uint3_t y,
-	bpl	1f	; 3	;                uint8_t* s) {
-	exg	x,d	; 7	; uint16_t x, d = y; // digit count y <= 5
+d16sgnd	bmi	1f	; 3	;int16_t d16sgnd(uint1_t n,
+	jsr	d0to32k	; 8(403);                uint3_t y,
+	rts		; 2	;                uint8_t* s) {
+1	jsr	d0to32k	; 8(403); uint16_t x, d = y; // digit count y <= 5
+	exg	x,d	; 7	;
 	coma		; 2	;
 	comb		; 2	; // 
 	addd	#$0001	; 4	; // caller can pop d args with: leas d,s

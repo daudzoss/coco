@@ -1,23 +1,23 @@
 SEC	equ	$01
-CLC	equ	$FF-SEC	
+CLC	equ	.NOT. SEC	
 
 SEV	equ	$02
-CLV	equ	$FF-SEV
+CLV	equ	.NOT. SEV
 
 SEZ	equ	$04
-CLZ	equ	$FF-SEZ
+CLZ	equ	.NOT. SEZ
 
 SEN	equ	$08
-CLN	equ	$FF-SEN
+CLN	equ	.NOT. SEN
 
 SEI	equ	$10
-CLI	equ	$FF-SEI
+CLI	equ	.NOT. SEI
 
 SEH	equ	$20
-CLH	equ	$FF-SEH
+CLH	equ	.NOT. SEH
 
 SEF	equ	$40
-CLF	equ	$FF-SEF
+CLF	equ	.NOT. SEF
 
 SEE	equ	$80
-CLE	equ	$FF-SEE
+CLE	equ	.NOT. SEE
