@@ -29,7 +29,7 @@ x10ind	stx	,--s	; 5	;int16_t x10inD(int16_t x) {
 	rts		; 2 (35);} // x10inD()
 
 ;;; copy Y to D, convert a Y-digit unsigned BCD 0..32767 to binary unsigned in Y
-d0to32k	stx	,--s	;	;uint16_t d0to32k(uint3_t y,
+d0to32k	stx	,--s	; 9	;uint16_t d0to32k(uint3_t y,
 	sty	,--s	; 9	;                 const uint8_t* s) {
 	ldx	#$0000	; 3	; uint16_t x, d = y; // digit count y <= 5
 	beq	2f	; 3	;
@@ -40,72 +40,72 @@ d0to32k	stx	,--s	;	;uint16_t d0to32k(uint3_t y,
 	abx		; 3	;  x += b;
 	leay	-1,y	; 5	; }
 	bne	1b	; 3	; // caller can pop d args with: leas d,s
-2	tfr	x,y	;	;
+2	tfr	x,y	; 7	;
 	ldd	,s++	; 8	; return d, y = x;
-	ldx	,s++	;	;
-	rts		; 2(395);} // d0to32k()
+	ldx	,s++	; 8	;
+	rts		; 2(419);} // d0to32k()
 
 ;;; copy Y to D,convert a Y-digit signed BCD -32767..32767 to binary signed in Y
 d16sgnd	bmi	d16ngtv	; 3	;int16_t d16sgnd(uint1_t n,
-	jsr	d0to32k	; 8(403);                uint3_t y,
+	jsr	d0to32k	; 8(427);                uint3_t y,
 	rts		; 2	;                uint8_t* s) {
-d16ngtv	jsr	d0to32k	; 8(403); uint16_t x, d = y; // digit count y <= 5
+d16ngtv	jsr	d0to32k	; 8(427); uint16_t x, d = y; // digit count y <= 5
 	exg	x,d	; 7	;
 	coma		; 2	;
 	comb		; 2	; // 
 	addd	#$0001	; 4	; // caller can pop d args with: leas d,s
 	exg	x,d	; 7	; return d, x = d0to32k(y, s) * (n ? -1 : 1);
-	rts		; 2(430);} // d16sgnd()
+	rts		; 2(454);} // d16sgnd()
 
 ;;; look ahead to next character in the array, plus one more if its the sign
-1	lda	,x		;
-	ldb	,+x		;
-	cmpb	#'0'		;
-	blo	3f		;
-	cmpb	#'0'		;
-	bhi	3f		;
+1	lda	,x	;	;
+	ldb	,+x	;	;
+	cmpb	#'0'	;	;
+	blo	3f	;	;
+	cmpb	#'9'	;	;
+	bhi	3f	;	;
 ;	rts
-peekdig	ldb	,x		;char peekdig(const char** x, char* a/*zero*/) {
-	cmpb	#'-'		; char b = *(*x);
-	bne	2f		;
-	tsta			; if (b == '-' || b == '+') {
-	beq	1b		;  if (*a == '\0') { // first character found
-	bne	4f		;   *a = b; // gets stored in *a to remember '-'
-2	cmpb	#'+'		;   ++(*x); // then advance x pointer past it
-	bne	4f		;   if (*(*x) >= '0' && *(*x) <= '9')
-	tsta			;    b = peekdig(x, a); // = *(*x);
-	beq	1b		;   else
-	bne	4f		;    b = (b & 0xc0) ? /*implicit*/ 1 : 0/*err*/;
-3	andb	#$c0		;  }
-	beq	4f		; }
-	ldb	#$01		; return b;
-4	rts			;}
+peekdig	ldb	,x	;	;char peekdig(const char** x, char* a/*zero*/) {
+	cmpb	#'-'	;	; char b = *(*x);
+	bne	2f	;	;
+	tsta		;	; if (b == '-' || b == '+') {
+	beq	1b	;	;  if (*a == '\0') { // first character found
+	bne	4f	;	;   *a = b; // gets stored in *a to remember '-'
+2	cmpb	#'+'	;	;   ++(*x); // then advance x pointer past it
+	bne	4f	;	;   if (*(*x) >= '0' && *(*x) <= '9')
+	tsta		;	;    b = peekdig(x, a); // = *(*x);
+	beq	1b	;	;   else
+	bne	4f	;	;    b = (b & 0xc0) ? /*implicit*/ 1 : 0/*err*/;
+3	andb	#$c0	;	;  }
+	beq	4f	;	; }
+	ldb	#$01	;	; return b;
+4	rts		;	;} // peekdig()
 	
 get3bcd
 
-get5bcd	ldy	#$0000		;int16_t get5bcd(const char** x) {
-	clra			; uint16_t y = 0, d;
-1	jsr	peekdig		; uint8_t a = 0, b, s[5];
-	cmpb	#'0'		;
-	blo	3f		; while (1) {
-	cmpb	#'9'		;  b = peekdig(x, a);
-	bhi	3f		;  if (b >= '0' && b <= '9') // verified a digit
-	leax	1,x		;   if ((*x)++ // now *x points to a known digit
-	leay	-5,y		;       &&
-	bne	2f		;       (y != 5)) {
-	leay	6,y		;
-	andb	#$0f		;
-	stb	,-s		;    s[y++] = b - '0';
-	bra	1b		;    continue;
-2	clrb			;   } else
-	bra	5f		;    b = 0; // indicates unsuccessful conversion
-3	tstb			;  break;
-	beq	5f		; }
-	cmpa	#'-'		; if ((d = b))
-	beq			;  if (a != '-')
-	jsr	d0to32k		;   d = y, y = d0to32k(y, s); // x is preserved
-	bra			;  else
-4	jsr	d16ngtv		;   d = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
-5	leas	d,s		; return b = d & 0x07; // total digits converted
-	rts			;}
+get5bcd	ldy	#$0000	;	;int16_t get5bcd(const char** x) {
+	clra		;	; uint16_t y = 0, d;
+1	jsr	peekdig	;	; uint8_t a = 0, b, s[5];
+	cmpb	#'0'	;	;
+	blo	3f	;	; do {
+	cmpb	#'9'	;	;  b = peekdig(x, a);
+	bhi	3f	;	;  if (b >= '0' && b <= '9') { // verified digit
+	leax	1,x	;	;   (*x)++;
+	leay	-5,y	;	;
+	bne	2f	;	;   if (y != 5) { // *x points to a known digit
+	leay	6,y	;	;
+	andb	#$0f	;	;
+	stb	,-s	;	;    s[y++] = b - '0';
+	bra	1b	;	;   } else
+2	clrb		;	;    b = 0; // indicates unsuccessful conversion
+	bra	5f	;	;  }
+3	tstb		;	; } while (b);
+	beq	5f	;	;
+	cmpa	#'-'	;	; if (b)
+	beq		;	;  if (a != '-')
+	jsr	d0to32k	;	;   b = y, y = d0to32k(y, s); // x is preserved
+	bra		;	;  else
+4	jsr	d16ngtv	;	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
+5	leas	d,s	;	; return b & 0x07, y; // d digits converted as y
+	rts		;	;} // peekdig()
 	
