@@ -81,6 +81,8 @@ peekdig	ldb	,x		;char peekdig(const char** x, char* a/*zero*/) {
 	ldb	#$01		; return b;
 4	rts			;}
 	
+get3bcd
+
 get5bcd	ldy	#$0000		;int16_t get5bcd(const char** x) {
 	clra			; uint16_t y = 0, d;
 1	jsr	peekdig		; uint8_t a = 0, b, s[5];
