@@ -81,7 +81,58 @@ peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 4	rts		; 5 (40);} // peekdig()
 
 ;;; convert a signed ASCII decimal integer -127..127 at X to binary in Y
-get3bcd
+get3bcd	ldx	#$0000		;
+	clra			;
+1	jsr	peekdig		;
+	cmpb	#'0'		;
+	blo	3f		;
+	cmpb	#'9'		;
+	bhi	3f		;
+	leax	1,x		;
+	leay	-3,y		;
+	bne	2f		;
+	leay	4,y		;
+	andb	#$0f		;
+	stb	,-s		;
+	bra	1b		;
+2	clrb			;
+	bra	9f		;
+3	tstb			;
+	beq	9f		;
+	
+	ldb	,s		;
+	clr	,s		;
+	stb	,--s		;
+	
+	cmpy	#3		;
+	bne	4f		;
+	ldy	,s++		;
+	ldb	,s+		;
+	puls	#cc		; // C quashed by cmpa?!?
+	bra	6f		;
+	
+4	cmpy	#2		;
+	bne	5f		;
+	ldy	,s++		;
+	ldb	,s+		;
+	andcc	#$fe		; // C quashed by cmpa?!?
+	bra	6f		;
+	
+5	cmpy	#1		;
+	bne	8f		;
+	ldy	,s++		;
+	clrb			;
+	andcc	#$fe		; // C quashed by cmpa?!?
+	
+6	stx	,--s		;
+	tfr	y,x		;
+	cmpa	#'-'		;
+	beq	7f		;
+	jsr	d0?		;
+	bra	8f		;
+7	jsr	d8ngtv		;
+8	ldx	,s++		;
+9	rts			;
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
 get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
@@ -93,21 +144,20 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 	bhi	3f	; 3	;  if (b >= '0' && b <= '9') { // verified digit
 	leax	1,x	; 5	;   (*x)++;
 	leay	-5,y	; 5	;
-	bne	2f	; 3	;   if (y != 5) { // *x points to a known digit
+	bne	2f	; 3	;   if (y != 5) // *x points to a known digit
 	leay	6,y	; 5	;
 	andb	#$0f	; 2	;
 	stb	,-s	; 6	;    s[y++] = b - '0';
-	bra	1b	; 3	;   } else
+	bra	1b	; 3	;   else
 2	clrb		; 2	;    b = 0; // indicates unsuccessful conversion
 	bra	5f	; 3	;  }
 3	tstb		; 2	; } while (b);
-	beq	5f	; 3	;
-	cmpa	#'-'	; 2	; if (b)
-	beq	?	; 3	;  if (a != '-')
-	tfr	y,d	; 7	;
-	jsr	d0to32k	; 8()	;   b = y, y = d0to32k(y, s); // x is preserved
-	bra	?	; 3	;  else
-4	jsr	d16ngtv	; 8()	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
+	beq	5f	; 3	; if (b) {
+	cmpa	#'-'	; 2	;  if (a != '-')
+	beq	4f	; 3	;   b = y, y = d0to32k(y, s); // x is preserved
+	jsr	d0to32k	; 8();  else
+	bra	5f	; 3	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
+4	jsr	d16ngtv	; 8(); }
 5	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
-	rts		; 5	;} // peekdig()
+	rts		; 5	;} // get5bcd()
 	
