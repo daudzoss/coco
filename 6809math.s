@@ -7,10 +7,13 @@ d0to199	lda	#$0a	; 2	;uint16_t d0to199(uint1_t c,  // 100's
 	rts		; 2 (22);} // d0to199()
 
 ;;; convert a 3-digit signed BCD -128..127 to binary unsigned in X, signed in D
-d8sgnd	jsr	d0to199	; 8 (30);int16_t d8sgnd(uint1_t n, // sign
-	tfr	x,d	; 7	;               uint1_t c,  // 100's
-	bpl	1f	; 3	;               uint16_t d,  // 10's
-	negb		; 2	;               uint16_t x) { // 1's
+d8sgnd	bmi	d8ngtv	; 3	;int16_t d8sgnd(uint1_t n, // sign
+	jsr	d0to199	; 8 (30);               uint1_t c,  // 100's
+	tfr	x,d	; 7	;               uint16_t d,  // 10's
+	rts		; 2	;               uint16_t x) { // 1's
+d8ngtv	jsr	d0to199	; 8 (30);
+	tfr	x,d	; 7	;
+	negb		; 2	;
 	sex		; 2	; return d = (x += c*100 + b*10) * (n ? -1 : 1);
 1	rts		; 2 (46);} // d8sgned()
 
