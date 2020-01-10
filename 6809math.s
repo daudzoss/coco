@@ -55,7 +55,7 @@ d16ngtv	jsr	d0to32k	; 8(445); uint16_t x, d = y; // digit count y <= 5
 	comb		; 2	;
 	addd	#$0001	; 4	; // caller can pop d args with: leas d,s
 	exg	x,d	; 7	; return d, x = d0to32k(y, s) * (n ? -1 : 1);
-	rts		; 5(472);} // d16sgnd()
+	rts		; 5(475);} // d16sgnd()
 
 ;;; look ahead to next character in the array, plus one more if it's a +/- sign
 peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
@@ -86,11 +86,11 @@ get3bcd	ldy	#$0000	; 	;int16_t get3bcd(const char** x) {
 1	jsr	peekdig	; 	; uint8_t a = 0, b, s[4];
 	cmpb	#'0'	; 	;
 	blo	3f	; 	; do {
-	cmpb	#'9'	; 	;  b = peekdig(x, a);
+	cmpb	#'9'	; 	;  b = peekdig(x, &a);
 	bhi	3f	; 	;  if (b >= '0' && b <= '9') { // verified digit
 	leax	1,x	; 	;   (*x)++;
 	leay	-3,y	; 	;
-	bne	2f	; 	;   if (y != 3) // *x points to a known digit
+	beq	2f	; 	;   if (y != 3) // *x points to a known digit
 	leay	4,y	; 	;
 	andb	#$0f	; 	;
 	stb	,-s	; 	;    s[y++] = b - '0';
@@ -138,27 +138,27 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 1	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
 	cmpb	#'0'	; 2	;
 	blo	3f	; 3	; do {
-	cmpb	#'9'	; 2	;  b = peekdig(x, a);
+	cmpb	#'9'	; 2	;  b = peekdig(x, &a); // sign or 1st dig in a
 	bhi	3f	; 3	;  if (b >= '0' && b <= '9') { // verified digit
 	leax	1,x	; 5	;   (*x)++;
 	leay	-5,y	; 5	;
-	bne	2f	; 3	;   if (y != 5) // *x points to a known digit
+	beq	2f	; 3	;   if (y != 5) // *x points to a known digit
 	leay	6,y	; 5	;
 	andb	#$0f	; 2	;
 	stb	,-s	; 6	;    s[y++] = b - '0';
 	bra	1b	; 3	;   else
 2	clrb		; 2	;    b = 0; // indicates unsuccessful conversion
-	tfr	y,d	;	;
+	tfr	y,d	; 7	;
 	bra	6f	; 3	;  }
 3	tstb		; 2	; } while (b);
-	bne	4f	;	;
-	tfr	y,d	;	;
-	bra	6f	;	; if (b) {
+	bne	4f	; 3	;
+	tfr	y,d	; 7	;
+	bra	6f	; 3	; if (b) {
 4	cmpa	#'-'	; 2	;  if (a != '-')
 	beq	5f	; 3	;   b = y, y = d0to32k(y, s); // x is preserved
-	jsr	d0to32k	; 8();  else
+	jsr	d0to32k	; 8(445);  else
 	bra	6f	; 3	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
-5	jsr	d16ngtv	; 8(); }
+5	jsr	d16ngtv	; 8(472); }
 6	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
-	rts		; 5	;} // get5bcd()
+	rts		; 5(994);} // get5bcd()
 	
