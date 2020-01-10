@@ -11,11 +11,11 @@ d8sgnd	bmi	d8ngtv	; 3	;int16_t d8sgnd(uint1_t n, // sign
 	jsr	d0to199	; 8 (33);               uint1_t c,  // 100's
 	tfr	x,d	; 7	;               uint16_t d,  // 10's
 	rts		; 2	;               uint16_t x) { // 1's
-d8ngtv	jsr	d0to199	; 8 (33);
-	tfr	x,d	; 7	;
-	negb		; 2	;
-	sex		; 2	; return d = (x += c*100 + b*10) * (n ? -1 : 1);
-1	rts		; 5 (52);} // d8sgned()
+d8ngtv	jsr	d0to199	; 8 (33); return n ? d8ngtv(c, d, x) : d0to199(c, d, x);
+	tfr	x,d	; 7	;} // d8sgnd()
+	negb		; 2	;int16_t d8ngtv(uint1_t c,uint16_t d,uint16_t x)
+	sex		; 2	;{return d = -(x += c*100 + d*10);
+1	rts		; 5 (52);} // d8ngtv()
 
 ;;; multiply X -3276..3276 by 10 into D, e.g. to allow 5-digit BCD construction
 x10ind	stx	,--s	; 5	;int16_t x10inD(int16_t x) {
@@ -50,12 +50,12 @@ d16sgnd	bmi	d16ngtv	; 3	;int16_t d16sgnd(uint1_t n,
 	jsr	d0to32k	; 8(445);                uint3_t y,
 	rts		; 2	;                uint8_t* s) {
 d16ngtv	jsr	d0to32k	; 8(445); uint16_t x, d = y; // digit count y <= 5
-	exg	x,d	; 7	;
-	coma		; 2	;
-	comb		; 2	;
-	addd	#$0001	; 4	; // caller can pop d args with: leas d,s
-	exg	x,d	; 7	; return d, x = d0to32k(y, s) * (n ? -1 : 1);
-	rts		; 5(475);} // d16sgnd()
+	exg	x,d	; 7	; return d, x = n ? d16ngtv(y,s) : d0to32k(y,s);
+	coma		; 2	;} // d16sgnd()
+	comb		; 2	;int16_t d16ngtv(uint3_t y, uint8_t* s) {
+	addd	#$0001	; 4	; uint16_t x, d = y; // digit count y <= 5
+	exg	x,d	; 7	; return d, x = -d0to32k(y, s);
+	rts		; 5(475);} // d16ngtv()
 
 ;;; look ahead to next character in the array, plus one more if it's a +/- sign
 peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
@@ -99,38 +99,40 @@ get3bcd	ldy	#$0000	; 	;int16_t get3bcd(const char** x) {
 	bra	9f	; 	;  }
 3	tstb		; 	; } while (b);
 	beq	9f	; 	; if (b) {
-	ldb	,s	; 	;  switch (y) {
-	clr	,s	; 	;  case 3:
-	stb	,--s	; 	;  
+	ldb	,s	; 	;  s[y+1] = s[y];  // convert s[y] from uint8_t
+	clr	,s	; 	;  s[y] = 0x00; // to uint16_t in order to pop y
+	stb	,--s	; 	;  switch (y) {
 	cmpy	#3	; 	;
-	bne	4f	; 	;
-	ldy	,s++	; 	;
-	ldb	,s+	; 	;
+	bne	4f	; 	;  case 3 /* digits */ : // 000..199
+	ldy	,s++	; 	;   y = (uint16_t) &s[y]; // 1's for X
+	ldb	,s+	; 	;   b = s[y-1] << 1;      // 10's for b
 	ror	,s+	; 	;
-	rolb		; 	;
-	bra	6f	; 	;
+	rolb		; 	;   b |= s[y-2] & 0x01;   // 100's for c 
+	bra	6f	; 	;   break;
 4	cmpy	#2	; 	;
-	bne	5f	; 	;
-	ldy	,s++	; 	;
-	ldb	,s+	; 	;
-	aslb		; 	;
-	bra	6f	; 	;
+	bne	5f	; 	;  case 2 /* digits */ : // 00..99
+	ldy	,s++	; 	;   y = (uint16_t) &s[y]; // 1's for X
+	ldb	,s+	; 	;   b = s[y-1] << 1;      // 10's for b
+	aslb		; 	;   b &= 0xfe;            // 100's is 0
+	bra	6f	; 	;   break;
 5	cmpy	#1	; 	;
-	bne	8f	; 	;
-	ldy	,s++	; 	;
-	clrb		; 	;
-6	stx	,--s	; 	;
+	bne	8f	; 	;  case 1 /* digit */ : // 0..9
+	ldy	,s++	; 	;   y = (uint16_t) &s[y]; // 1's for X
+	clrb		; 	;   b = 0;                // 10's, 100's are 0
+6	stx	,--s	; 	;  }
 	tfr	y,x	; 	;
-	cmpa	#'-'	; 	;
-	beq	7f	; 	;
-	lsrb		; 	;
-	jsr	d0to199	; 	;
-	bra	8f	; 	;
-7	jsr	d8ngtv	; 	;
-8	tfr	x,y	;	;
-	ldx	,s++	; 	;
-9	lea
-	rts		; 	;
+	cmpa	#'-'	; 	;  uint16_t x = y; // local preserves pointer X
+	beq	7f	; 	;  int16_t d;
+	lsrb		; 	;               
+	jsr	d0to199	; 	;  if (a != '-')
+	tfr	x,d	;	;   d = d0to199(b & 0x01, b >> 1, x); //100,10,1
+	bra	8f	; 	;  else
+7	lsrb		; 	;
+	jsr	d8ngtv	; 	;   d = d8ngtv(b & 0x01, b >> 1, x);  /100,10,1
+8	exg	d,y	;	;  x = d, d = y, y = x; // d digits converted
+	ldx	,s++	; 	; }
+9	leas	d,s	;	; return d & 0x07, y; // result in y
+	rts		; 	;} // get3bcd()
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
 get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
