@@ -81,58 +81,56 @@ peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 4	rts		; 5 (40);} // peekdig()
 
 ;;; convert a signed ASCII decimal integer -127..127 at X to binary in Y
-get3bcd	ldx	#$0000		;
-	clra			;
-1	jsr	peekdig		;
-	cmpb	#'0'		;
-	blo	3f		;
-	cmpb	#'9'		;
-	bhi	3f		;
-	leax	1,x		;
-	leay	-3,y		;
-	bne	2f		;
-	leay	4,y		;
-	andb	#$0f		;
-	stb	,-s		;
-	bra	1b		;
-2	clrb			;
-	bra	9f		;
-3	tstb			;
-	beq	9f		;
-	
-	ldb	,s		;
-	clr	,s		;
-	stb	,--s		;
-	
-	cmpy	#3		;
-	bne	4f		;
-	ldy	,s++		;
-	ldb	,s+		;
-	puls	#cc		; // C quashed by cmpa?!?
-	bra	6f		;
-	
-4	cmpy	#2		;
-	bne	5f		;
-	ldy	,s++		;
-	ldb	,s+		;
-	andcc	#$fe		; // C quashed by cmpa?!?
-	bra	6f		;
-	
-5	cmpy	#1		;
-	bne	8f		;
-	ldy	,s++		;
-	clrb			;
-	andcc	#$fe		; // C quashed by cmpa?!?
-	
-6	stx	,--s		;
-	tfr	y,x		;
-	cmpa	#'-'		;
-	beq	7f		;
-	jsr	d0?		;
-	bra	8f		;
-7	jsr	d8ngtv		;
-8	ldx	,s++		;
-9	rts			;
+get3bcd	ldy	#$0000	; 	;int16_t get3bcd(const char** x) {
+	clra		; 	; uint16_t y = 0, d;
+1	jsr	peekdig	; 	; uint8_t a = 0, b, s[4];
+	cmpb	#'0'	; 	;
+	blo	3f	; 	; do {
+	cmpb	#'9'	; 	;  b = peekdig(x, a);
+	bhi	3f	; 	;  if (b >= '0' && b <= '9') { // verified digit
+	leax	1,x	; 	;   (*x)++;
+	leay	-3,y	; 	;
+	bne	2f	; 	;   if (y != 3) // *x points to a known digit
+	leay	4,y	; 	;
+	andb	#$0f	; 	;
+	stb	,-s	; 	;    s[y++] = b - '0';
+	bra	1b	; 	;   else
+2	clrb		; 	;    b = 0; // indicates unsuccessful conversion
+	bra	9f	; 	;  }
+3	tstb		; 	; } while (b);
+	beq	9f	; 	; if (b) {
+	ldb	,s	; 	;  switch (y) {
+	clr	,s	; 	;  case 3:
+	stb	,--s	; 	;  
+	cmpy	#3	; 	;
+	bne	4f	; 	;
+	ldy	,s++	; 	;
+	ldb	,s+	; 	;
+	ror	,s+	; 	;
+	rolb		; 	;
+	bra	6f	; 	;
+4	cmpy	#2	; 	;
+	bne	5f	; 	;
+	ldy	,s++	; 	;
+	ldb	,s+	; 	;
+	aslb		; 	;
+	bra	6f	; 	;
+5	cmpy	#1	; 	;
+	bne	8f	; 	;
+	ldy	,s++	; 	;
+	clrb		; 	;
+6	stx	,--s	; 	;
+	tfr	y,x	; 	;
+	cmpa	#'-'	; 	;
+	beq	7f	; 	;
+	lsrb		; 	;
+	jsr	d0to199	; 	;
+	bra	8f	; 	;
+7	jsr	d8ngtv	; 	;
+8	tfr	x,y	;	;
+	ldx	,s++	; 	;
+9	lea
+	rts		; 	;
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
 get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
@@ -150,14 +148,17 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 	stb	,-s	; 6	;    s[y++] = b - '0';
 	bra	1b	; 3	;   else
 2	clrb		; 2	;    b = 0; // indicates unsuccessful conversion
-	bra	5f	; 3	;  }
+	tfr	y,d	;	;
+	bra	6f	; 3	;  }
 3	tstb		; 2	; } while (b);
-	beq	5f	; 3	; if (b) {
-	cmpa	#'-'	; 2	;  if (a != '-')
-	beq	4f	; 3	;   b = y, y = d0to32k(y, s); // x is preserved
+	bne	4f	;	;
+	tfr	y,d	;	;
+	bra	6f	;	; if (b) {
+4	cmpa	#'-'	; 2	;  if (a != '-')
+	beq	5f	; 3	;   b = y, y = d0to32k(y, s); // x is preserved
 	jsr	d0to32k	; 8();  else
-	bra	5f	; 3	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
-4	jsr	d16ngtv	; 8(); }
-5	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
+	bra	6f	; 3	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
+5	jsr	d16ngtv	; 8(); }
+6	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
 	rts		; 5	;} // get5bcd()
 	
