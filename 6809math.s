@@ -124,15 +124,15 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x) {
 	cmpa	#'-'	; 2	;  uint16_t x = y; // local preserves pointer X
 	beq	7f	; 3	;  int16_t d;
 	lsrb		; 2	;               
-	jsr	d0to199	; 8();  if (a != '-')
+	jsr	d0to199	; 8 (33);  if (a != '-')
 	tfr	x,d	; 7	;   d = d0to199(b & 0x01, b >> 1, x); //100,10,1
 	bra	8f	; 3	;  else
 7	lsrb		; 2	;
-	jsr	d8ngtv	; 8();   d = d8ngtv(b & 0x01, b >> 1, x);  /100,10,1
+	jsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  /100,10,1
 8	exg	d,y	; 7	;  x = d, d = y, y = x; // d digits converted
 	ldx	,s++	; 8	; }
 9	leas	d,s	; 8	; return d & 0x07, y; // result in y
-	rts		; 5();} // get3bcd()
+	rts		; 5(352);} // get3bcd()
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
 get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
@@ -164,3 +164,36 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 6	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
 	rts		; 5(994);} // get5bcd()
 	
+eatspc	stx	,--s	;{
+	ldb	,x+	;
+	tfr	x,y	;
+	bra	2f	;
+1	sta	,y+	;
+2	decb		;
+	bmi	3f	;
+	lda	,x+	;
+	cmpa	#' '	;
+	beq	2b	;
+	bne	1b	;
+	;; 	now count the chars
+3	tfr	y,d	;
+	ldx	,s	;
+	subd	,s++	;
+	stb	,x	;}
+
+;;; read a polynomial with int16_t coefficients and uint2_t exponents
+getpoly	bita	#$fe	;	;
+	beq	notstring
+	
+
+
+
+
+	sta	,-s	;	; //(s)till remaining
+	lda	#' '	;	;
+eatspc	cmpa	,x+	;	;
+	bne	1f	;	;
+	cmpx	,s	;	;
+	dec	,s	;
+	blo	eatspc	;	;
+1
