@@ -164,23 +164,6 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 6	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
 	rts		; 5(994);} // get5bcd()
 	
-eatspc	stx	,--s	;{
-	ldb	,x+	;
-	tfr	x,y	;
-	bra	2f	;
-1	sta	,y+	;
-2	decb		;
-	bmi	3f	;
-	lda	,x+	;
-	cmpa	#' '	;
-	beq	2b	;
-	bne	1b	;
-	;; 	now count the chars
-3	tfr	y,d	;
-	ldx	,s	;
-	subd	,s++	;
-	stb	,x	;}
-
 ;;; read a polynomial with int16_t coefficients and uint2_t exponents
 getpoly	bita	#$fe	;	;
 	beq	notstring
