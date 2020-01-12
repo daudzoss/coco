@@ -1,4 +1,5 @@
-eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
+;;;
+	eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	ldb	,x+	; 	; uint8_t b = str->n;
 	tfr	x,y	; 7	; char* y = str->c, a;
 	bra	2f	; 3	;
@@ -10,10 +11,10 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	beq	2b	; 3	;  if ((a = *x) != ' ')
 	bne	1b	; 3	;   *y++ = a;
 3	tfr	y,d	; 7	;
-	subd	,s	; 	; b = y - x; // (negative) delta in string size
-	ldx	,s	; 	;
-	abx		; 	;
+	subd	,s	; 6	; b = y - x; // (negative) delta in string size
+	ldx	,s	; 5	;
+	abx		; 3	;
 	tfr	x,d	; 7	;
 	ldx	,s++	; 	;
-	stb	,x	; 	; str->n += b; // less than or equal to original
+	stb	,x	; 4	; str->n += b; // less than or equal to original
 	rts		; 5	;} // eatspc()

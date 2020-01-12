@@ -166,16 +166,5 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 ;;; read a polynomial with int16_t coefficients and uint2_t exponents
 getpoly	bita	#$fe	;	;
 	beq	notstring
-	
-
-
-
-
-	sta	,-s	;	; //(s)till remaining
-	lda	#' '	;	;
-eatspc	cmpa	,x+	;	;
-	bne	1f	;	;
-	cmpx	,s	;	;
-	dec	,s	;
-	blo	eatspc	;	;
-1
+	leas	-8,s	;	; uint16_t s[4];
+	jsr	eatspc	;	;
