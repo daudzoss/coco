@@ -87,9 +87,9 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x) {
 1	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[4];
 	cmpb	#'0'	; 2	;
 	blo	3f	; 3	; do {
-	cmpb	#'9'	; 2	;  b = peekdig(x, &a);
+	cmpb	#'9'	; 2	;  b = peekdig(x, &a); // a is '-' if detected
 	bhi	3f	; 3	;  if (b >= '0' && b <= '9') { // verified digit
-	leax	1,x	; 5	;   (*x)++;
+	leax	1,x	; 5	;   (*x)++; // *x points to char after digit
 	leay	-3,y	; 5	;
 	beq	2f	; 3	;   if (y != 3) // *x points to a known digit
 	leay	4,y	; 5	;
@@ -100,25 +100,23 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x) {
 	bra	9f	; 3	;  }
 3	tstb		; 2	; } while (b);
 	beq	9f	; 3	; if (b) {
-	ldb	,s	; 4	;  s[y+1] = s[y];  // convert s[y] from uint8_t
-	clr	,s	; 6	;  s[y] = 0x00; // to uint16_t in order to pop y
-	stb	,--s	; 5	;  switch (y) {
-	cmpy	#$0003	; 5	;
+	clr	,-s	; 6	;  s[y+1] = s[y]; s[y] = 0x00; // make uint16_t
+	cmpy	#$0003	; 5	;  switch (y) {
 	bne	4f	; 3	;  case 3 /* digits */ : // 000..199
-	ldy	,s++	; 9	;   y = (uint16_t) &s[y]; // 1's for X
+	ldy	,s++	; 9	;   y = *((uint16_t*) &s[y]); // 1's for X
 	ldb	,s+	; 7	;   b = s[y-1] << 1;      // 10's for b
 	ror	,s+	; 9	;
 	rolb		; 2	;   b |= s[y-2] & 0x01;   // 100's for c 
 	bra	6f	; 3	;   break;
 4	cmpy	#$0002	; 5	;
 	bne	5f	; 3	;  case 2 /* digits */ : // 00..99
-	ldy	,s++	; 9	;   y = (uint16_t) &s[y]; // 1's for X
+	ldy	,s++	; 9	;   y = *((uint16_t*) &s[y]); // 1's for X
 	ldb	,s+	; 7	;   b = s[y-1] << 1;      // 10's for b
 	aslb		; 2	;   b &= 0xfe;            // 100's is 0
 	bra	6f	; 3	;   break;
 5	cmpy	#$0001	; 5	;
 	bne	8f	; 3	;  case 1 /* digit */ : // 0..9
-	ldy	,s++	; 9	;   y = (uint16_t) &s[y]; // 1's for X
+	ldy	,s++	; 9	;   y = *((uint16_t*) &s[y]); // 1's for X
 	clrb		; 2	;   b = 0;                // 10's, 100's are 0
 6	stx	,--s	; 5	;  }
 	tfr	y,x	; 7	;
@@ -126,13 +124,13 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x) {
 	beq	7f	; 3	;  int16_t d;
 	lsrb		; 2	;               
 	jsr	d0to199	; 8 (33);  if (a != '-')
-	tfr	x,d	; 7	;   d = d0to199(b & 0x01, b >> 1, x); //100,10,1
-	bra	8f	; 3	;  else
-7	lsrb		; 2	;
+	bra	8f	; 3	;   d = d0to199(b & 0x01, b >> 1, x); //100,10,1
+7	lsrb		; 2	;  else
 	jsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  /100,10,1
-8	exg	d,y	; 7	;  x = d, d = y, y = x; // d digits converted
+8	tfr	y,d	; 7	;  d = y; // d total digits converted
+	tfr	x,y	; 7	;  y = x; // y result of conversion
 	ldx	,s++	; 8	; }
-9	leas	d,s	; 8	; return d & 0x07, y; // result in y
+9	leas	d,s	; 8	; return d & 0x03, y;
 	rts		; 5(352);} // get3bcd()
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
