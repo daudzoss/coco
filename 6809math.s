@@ -30,32 +30,33 @@ x10ind	stx	,--s	; 5	;int16_t x10inD(int16_t x) {
 
 ;;; copy Y to D, convert a Y-digit unsigned BCD 0..32767 to binary unsigned in Y
 d0to32k	stx	,--s	; 9	;uint16_t d0to32k(uint3_t y,
-	sty	,--s	; 9	;                 const uint8_t* s) {
-	ldx	#$0000	; 3	; uint16_t x, d = y; // digit count y <= 5
-	beq	2f	; 3	;
+	ldx	#$0000	; 3	;                 const uint8_t* s) {
+	sty	,--s	; 9	; uint16_t x, d = y; // digit count y <= 5
+	beq	3f	; 3	;
+	bne	2f	; 3	;
 1	jsr	x10ind	; 8 (46); for (x = 0x0000; y; y--) {
-	leax	5,s	; 5 	;  // d is now x*10, x is now the digit pointer
+2	leax	5,s	; 5 	;  // d is now x*10, x is now the digit pointer
 	exg	d,x	; 7	;  x *= 10; // d is now the digit pointer
 	ldb	d,y	; 8	;  uint8_t b = s[ /* 5[sic] + */ y]; // Y',X',PC
 	abx		; 3	;  x += b;
 	leay	-1,y	; 5	; }
 	bne	1b	; 3	; // caller can pop d args with: leas d,s
-2	tfr	x,y	; 7	;
+3	tfr	x,y	; 7	;
 	ldd	,s++	; 8	; return d, y = x;
 	ldx	,s++	; 8	;
-	rts		; 5(437);} // d0to32k()
+	rts		; 5(394);} // d0to32k()
 
 ;;; copy Y to D,convert a Y-digit signed BCD -32767..32767 to binary signed in Y
 d16sgnd	bmi	d16ngtv	; 3	;int16_t d16sgnd(uint1_t n,
-	jsr	d0to32k	; 8(445);                uint3_t y,
+	jsr	d0to32k	; 8(402);                uint3_t y,
 	rts		; 2	;                uint8_t* s) {
-d16ngtv	jsr	d0to32k	; 8(445); uint16_t x, d = y; // digit count y <= 5
+d16ngtv	jsr	d0to32k	; 8(402); uint16_t x, d = y; // digit count y <= 5
 	exg	x,d	; 7	; return d, x = n ? d16ngtv(y,s) : d0to32k(y,s);
 	coma		; 2	;} // d16sgnd()
 	comb		; 2	;int16_t d16ngtv(uint3_t y, uint8_t* s) {
 	addd	#$0001	; 4	; uint16_t x, d = y; // digit count y <= 5
 	exg	x,d	; 7	; return d, x = -d0to32k(y, s);
-	rts		; 5(475);} // d16ngtv()
+	rts		; 5(442);} // d16ngtv()
 
 ;;; look ahead to next character in the array, plus one more if it's a +/- sign
 peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
@@ -158,11 +159,11 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 	bra	6f	; 3	; if (b) {
 4	cmpa	#'-'	; 2	;  if (a != '-')
 	beq	5f	; 3	;   b = y, y = d0to32k(y, s); // x is preserved
-	jsr	d0to32k	; 8(445);  else
+	jsr	d0to32k	; 8(402);  else
 	bra	6f	; 3	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
-5	jsr	d16ngtv	; 8(472); }
+5	jsr	d16ngtv	; 8(439); }
 6	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
-	rts		; 5(994);} // get5bcd()
+	rts		; 5(951);} // get5bcd()
 	
 ;;; read a polynomial with int16_t coefficients and uint2_t exponents
 getpoly	bita	#$fe	;	;
