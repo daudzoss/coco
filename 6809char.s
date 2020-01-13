@@ -1,4 +1,4 @@
-;;; compress ' ' out of a length-prefixed string in situ, updating the size byte
+;;; compress ' ' out of a length-prefixed string in situ, update new length byte
 eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	ldb	,x+	; 6	; uint8_t b = str->n;
 	tfr	x,y	; 7	; char* y = str->c, a;
@@ -12,9 +12,7 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	bne	1b	; 3	;   *y++ = a;
 3	tfr	y,d	; 7	;
 	subd	,s	; 6	; b = y - x; // (negative) delta in string size
-	ldx	,s	; 5	;
-	abx		; 3	;
-	tfr	x,d	; 7	;
+	addd	,s	; 6	;
 	ldx	,s++	; 8	;
 	stb	,x	; 4	; str->n += b; // less than or equal to original
-	rts		;5(6434);} // eatspc()
+	rts		;5(6425);} // eatspc()
