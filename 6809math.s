@@ -126,7 +126,7 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x) {
 	jsr	d0to199	; 8 (33);  if (a != '-')
 	bra	8f	; 3	;   d = d0to199(b & 0x01, b >> 1, x); //100,10,1
 7	lsrb		; 2	;  else
-	jsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  /100,10,1
+	jsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  //100,10,1
 8	tfr	y,d	; 7	;  d = y; // d total digits converted
 	tfr	x,y	; 7	;  y = x; // y result of conversion
 	ldx	,s++	; 8	; }
