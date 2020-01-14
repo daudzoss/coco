@@ -21,50 +21,38 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	beq	notstring
 	
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
-getpoly	jsr	eatspc	;8(6433);int16_t getpoly(struct {uint8_t n; char* c;}*
-	stx	,--s	; 9	;                str)
-	clra		; 2	; char* x, * final; // stack pointer + 8
-	ldb	[,s]	;	;
-	addd	,s	;	; eatspc(); 
-	std	,s	; 	; final = str + str->n;
-
-	leas	-8,s	; 	; uint16_t s[4] = {
-	clr	,s	; 6	;  0, // x^0 coefficient at stack pointer + 0
-	clr	1,s	; 7	;
-	clr	2,s	; 7	;  0, // x^1 coefficient at stack pointer + 2
-	clr	3,s	; 7	;
-	clr	4,s	; 7	;  0, // x^2 coefficient at stack pointer + 4
-	clr	5,s	; 7	;
-	clr	6,s	; 7	;  0  // x^3 coefficient at stack pointer + 6
-	clr	7,s	; 7	; };
-	
-	lda	,x+;replaces:
-	ldb	#1	;	;
-	abx		;	; for (char* x = str->c; x <= final; ) {
+getpoly	leax	1,x	; 5	; for (char* x = str->c; x <= final; ) {
 1
-	cmpx	8,s	;	;  int16_t y;
-	ble	alldone
-	jsr	get5bcd	; 	;  b = get5bcd(&x, &y); // advanced past dig
-	tstb		;	;
+	cmpx	8,s	;	;  int16_t y, d;
+	ble	5f	;	;  uint8_t b = get5bcd(&x, &y); // past digits
+	jsr	get5bcd	; 	;
+	tstb		;	;  if (b) { // successfully converted into Y
 	beq	error
-	lda	,x	;	;  if (b) { // successfully converted into Y
-	cmp	#','	;	;
-	bne	2f	;	;   if (*x == ',') { // comma for initial guess
-	lda	,x+
-;;;store initial value overwriting s[8]
-2	anda	#$fe	;	;   } else if (*x & 0xc0) { // letter
-	bne	nonletter
+	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
+	cmpa	#','	;	;
+	bne	2f	;	;   if (a == ',') {// comma before initial guess
+	jsr	get5bcd	;	;    b = get5bcd(&x, &y);
+	tstb		;	;    if (b == 0)
+	beq	error	;	;     goto error;
+	sty	8,s	;	;    final.i = y;
+	bra	?	;	;    break;
+2	deca		;	;
+	anda	#$c0	;	;   } else if (a >= 'A') { // letter, maybe exp
+	bne	3f	;	;
+	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
+	cmpb	#'0'	;	;
+	blo	error	;	;
+	cmpb	#'4'	;	;
+	blo	4f	;	;    if (b < '0' || b >= '4')
+	ldb	#'1'	;	;     b = '1'; // implied exponent of 1
+3
+	leax	-1,x	;	;    else
+4
+	clra		;	;     ++x; // ate the exponent, so undo the --x:
+	aslb		;	;   } // we now have coefficient in y, exp in b
+	andb	0x06	;	;   --x; // back up to get potential next term
+	sty	d,s	;	;   s[b -'0'] = y;
+	bra	1b	;	;  }
+5
 
-
-
-
-	ldd	2,s	;
-	ora	4,s	;
-	ora	5,s	;
-	ora	6,s	;
-	ora	7,s	;
-	beq	f
-	dec	2,s	;	; if (!s[1] && !s[2] && !s[3]) {
-	dec	3,s	;	;  s[1] = -1; // calculator mode
-	ldd	,s	;	;  ?? = -s[0]; // initial guess will be exact
-	std	??
+??
