@@ -21,11 +21,11 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	beq	notstring
 	
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
-getpoly	jsr	eatspc	; 	;int16_t getpoly(struct {uint8_t n; char* c;}*
-	stx	,--s	;	;                str)
-	clra		;	; char* x, * final; // stack pointer + 8
+getpoly	jsr	eatspc	;8(6433);int16_t getpoly(struct {uint8_t n; char* c;}*
+	stx	,--s	; 9	;                str)
+	clra		; 2	; char* x, * final; // stack pointer + 8
 	ldb	[,s]	;	;
-	addd	,s	; 	; eatspc(); 
+	addd	,s	;	; eatspc(); 
 	std	,s	; 	; final = str + str->n;
 
 	leas	-8,s	; 	; uint16_t s[4] = {
@@ -38,6 +38,7 @@ getpoly	jsr	eatspc	; 	;int16_t getpoly(struct {uint8_t n; char* c;}*
 	clr	6,s	; 7	;  0  // x^3 coefficient at stack pointer + 6
 	clr	7,s	; 7	; };
 	
+	lda	,x+;replaces:
 	ldb	#1	;	;
 	abx		;	; for (char* x = str->c; x <= final; ) {
 1
@@ -49,7 +50,8 @@ getpoly	jsr	eatspc	; 	;int16_t getpoly(struct {uint8_t n; char* c;}*
 	lda	,x	;	;  if (b) { // successfully converted into Y
 	cmp	#','	;	;
 	bne	2f	;	;   if (*x == ',') { // comma for initial guess
-
+	lda	,x+
+;;;store initial value overwriting s[8]
 2	anda	#$fe	;	;   } else if (*x & 0xc0) { // letter
 	bne	nonletter
 
