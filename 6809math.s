@@ -164,36 +164,31 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	rts		; 5(951);} // get5bcd()
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
-o3solve	jsr	eatspc	;8(6433);int16_t getpoly(struct {uint8_t n; char* c;}*
-	stx	,--s	; 9	;                str) {
-	clra		; 2	; // save endpoint at stack pointer + 8:
-	ldb	[,s]	;	; union { char* c; int16_t i; } final;
-	addd	,s	;	; eatspc(); 
-	std	,s	; 	; final.c = str + str->n; // last = *ptr + ptr;
-
-	leas	-8,s	; 	; uint16_t s[4] = {
-	clr	,s	; 6	;  0, // x^0 coefficient at stack pointer + 0
-	clr	1,s	; 7	;
-	clr	2,s	; 7	;  0, // x^1 coefficient at stack pointer + 2
-	clr	3,s	; 7	;
-	clr	4,s	; 7	;  0, // x^2 coefficient at stack pointer + 4
-	clr	5,s	; 7	;
-	clr	6,s	; 7	;  0  // x^3 coefficient at stack pointer + 6
-	clr	7,s	; 7	; };
-	
-	
-
-
-
-
-	lda	2,s	;	; }
-	ora	3,s	;	;
-	ora	4,s	;	;
-	ora	5,s	;	;
-	ora	6,s	;	;
-	ora	7,s	;	;
-	beq	??
-	dec	2,s	;	; if (!s[1] && !s[2] && !s[3]) {
+o3solve	jsr	eatspc	;8(6433);int16_t getpoly(struct {uint8_t n; char* c;}* x)
+	stx	,--s	; 9	;{
+	clra		; 2	; uint16_t s[5]; // stack args to/from getpoly()
+	ldb	[,s]	;	; eatspc(x); // spaces compressed out of string
+	addd	,s	;	; // stop point for scan at stack pointer + 8:
+	std	,s	; 	; s[4] = x + x->n; // ECB string end at ptr+*ptr
+	leas	-8,s	; 	;
+	clr	7,s	; 7	; s[3] = 0; // x^3 coeff at stack pointer + 6
+	clr	6,s	; 7	;
+	clr	5,s	; 7	; s[2] = 0; // x^2 coeff at stack pointer + 4
+	clr	4,s	; 7	;
+	clr	3,s	; 7	; s[1] = 0; // x^1 coeff at stack pointer + 2
+	clr	2,s	; 7	;
+	clr	1,s	; 7	; s[0] = 0; // x^0 coeff at stack pointer + 0
+	clr	,s	; 6	; // advance past size byte to string start:
+	leax	1,x	; 5	; union {char* c, int16_t i} x = x++;
+	jsr	getpoly	;5()    ; uint16_t d = getpoly(&x, s);
+	tstb		;	;
+	bne	1f	;	; if (!d) { // no vars encountered
+	dec	2,s	;	;
 	dec	3,s	;	;  s[1] = -1; // calculator mode
-	ldd	,s	;	;  ?? = -s[0]; // initial guess will be exact
-	std	??
+	ldx	,s	;	;  x.i = s[0]; // initial guess x will be exact
+	bra	2f	;	;
+1	tsta		;	;
+	bpl	2f	;	; } else if (d < 0) {
+error	
+2	
+	

@@ -21,38 +21,44 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	beq	notstring
 	
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
-getpoly	leax	1,x	; 5	; for (char* x = str->c; x <= final; ) {
-1
-	cmpx	8,s	;	;  int16_t y, d;
-	ble	5f	;	;  uint8_t b = get5bcd(&x, &y); // past digits
-	jsr	get5bcd	; 	;
-	tstb		;	;  if (b) { // successfully converted into Y
-	beq	error
+getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
+	ble	5f	;	; while (x <= (char*)(s[5])) { // not at end yet
+	jsr	get5bcd	; 	;  int16_t y, d = get5bcd(&x, &y); // past digit
+	tstb		;	;
+	beq	4f	;	;  if (d) { // successfully converted into Y
 	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
 	cmpa	#','	;	;
-	bne	2f	;	;   if (a == ',') {// comma before initial guess
+	bne	1f	;	;   if (a == ',') {// comma before initial guess
 	jsr	get5bcd	;	;    b = get5bcd(&x, &y);
 	tstb		;	;    if (b == 0)
-	beq	error	;	;     goto error;
-	sty	8,s	;	;    final.i = y;
-	bra	?	;	;    break;
-2	deca		;	;
+	beq	4f	;	;     return -1;// no value provided after comma
+	bra	5f	;	;    break; // initial guess (or junk) is in y
+1	deca		;	;
 	anda	#$c0	;	;   } else if (a >= 'A') { // letter, maybe exp
-	bne	3f	;	;
+	bne	2f	;	;
 	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
 	cmpb	#'0'	;	;
-	blo	error	;	;
-	cmpb	#'4'	;	;
-	blo	4f	;	;    if (b < '0' || b >= '4')
+	blo	4f	;	;    if (b < '0')
+	cmpb	#'4'	;	;     return -1;// invalid character encountered
+	blo	3f	;	;    else if (b >= '4')
 	ldb	#'1'	;	;     b = '1'; // implied exponent of 1
-3
+2
 	leax	-1,x	;	;    else
-4
-	clra		;	;     ++x; // ate the exponent, so undo the --x:
+3
+	clra		;	;     ++x; // ate the exponent, so undo our --x:
 	aslb		;	;   } // we now have coefficient in y, exp in b
 	andb	0x06	;	;   --x; // back up to get potential next term
 	sty	d,s	;	;   s[b -'0'] = y;
-	bra	1b	;	;  }
-5
-
-??
+	bra	getpoly	;	;   continue;
+4	lda	#$ff	;	;
+	ldb	#$ff	;	;  } else
+	rts		;	;   return -1;// conversion failed
+5	clra		;	;
+	tfr	y,x	;	;
+	ldb	4,s	;	; }
+	orb	5,s	;	; 
+	orb	6,s	;	; x = y; // initial guess (or junk) is in x
+	orb	7,s	;	; // (doesn't matter, used only for convergence)
+	orb	8,s	;	;
+	orb	9,s	;	; return s[1] | s[2] | s[3];// 0 if no var found
+	rts		;	;}
