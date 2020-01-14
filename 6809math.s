@@ -82,7 +82,7 @@ peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 4	rts		; 5 (40);} // peekdig()
 
 ;;; convert a signed ASCII decimal integer -127..127 at X to binary in Y
-get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x) {
+get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
 1	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[4];
 	cmpb	#'0'	; 2	;
@@ -130,11 +130,11 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x) {
 8	tfr	y,d	; 7	;  d = y; // d total digits converted
 	tfr	x,y	; 7	;  y = x; // y result of conversion
 	ldx	,s++	; 8	; }
-9	leas	d,s	; 8	; return d & 0x03, y;
+9	leas	d,s	; 8	; return d & 0x03;
 	rts		; 5(352);} // get3bcd()
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
-get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
+get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
 1	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
 	cmpb	#'0'	; 2	;
@@ -160,11 +160,5 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x) {
 	jsr	d0to32k	; 8(402);  else
 	bra	6f	; 3	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
 5	jsr	d16ngtv	; 8(439); }
-6	leas	d,s	; 8	; return b & 0x07, y; // d digits converted as y
+6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(951);} // get5bcd()
-	
-;;; read a polynomial with int16_t coefficients and uint2_t exponents
-getpoly	bita	#$fe	;	;
-	beq	notstring
-	leas	-8,s	;	; uint16_t s[4];
-	jsr	eatspc	;	;
