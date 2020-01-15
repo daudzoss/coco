@@ -186,24 +186,25 @@ x3sgnd8	stx	,--s	;	;int16_t x3sgnd8(register int8_t x) {
 2	bit	#1
 	beq	xiseven	;	; else if (
 	andb	#$fe	;	;
-
-x3sgnd8	tfr	x,d	;	;
-	bitb	#$60	;	;
-	bpl	1f	;	;
-	negb		;	;
-	sex		;	;
-	jsr	x3sgnd8	;	;
-	coma		;	;
-	comb		;	;
-	addd	#$0001	;	;
-	rts		;	;
-1	beq	2f	;	;
-	ldd	#$8000	;	;
-	rts		;	;
-2	andb	#$
 	
-	
+;;; optimized for speed (and constant time) using a lookup table:
+	ldd	#$????	; 3	;int16_t x3sgnd8(int16_t x) {
+	rts		; 5	; int16_t lut = {
+x3sgnd8	tfr	x,d	; 7	;               };
+	bitb	#$60	; 2	; if ()
+	bmi	2f	; 3	;
+	bne	3f	; 3	;
+1	ldd	#$8000	; 3	;
+	rts		; 5	;
+2	beq	1b	; 3	;
+3	andb	#$3f	; 2	;
+	asl		; 2	;
+	asl		; 2	;
+	lda	#$ff	; 2	;
+	ldx	#x3sgnd8; 3	;
+	jmp	d,x	; 3+	;}
 
+	
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}* x)
 	stx	,--s	; 9	;{
