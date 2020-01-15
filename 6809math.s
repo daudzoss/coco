@@ -163,8 +163,49 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(951);} // get5bcd()
 
+;;; cube an 8-bit signed number in low X byte into D, optimizing to fit into 16b
+
+x3sgnd8	stx	,--s	;	;int16_t x3sgnd8(register int8_t x) {
+	ldd	,s	;	; int16_t s, d;
+	sex		;	;
+	std	,s	;	; s = d = (int16_t) x;
+	bpl	1f	;	; if (d < 0)
+	leax	2,s	;	;
+	negb		;	;
+	sex		;	;
+	tfr	d,x	;	;
+	jsr	x3sgnd8	;	;
+	coma		;	;
+	comb		;	;
+	addd	#$0001	;	;
+	rts		;	;  return d = -x3sgnd8(-d); // odd function
+1	bitb	#$e0	;	;
+	beq	2f	;	; else if (d >= 32)
+	ldd	#$0000	;	;
+	rts		;	;  return 0; // cube won't fit in 
+2	bit	#1
+	beq	xiseven	;	; else if (
+	andb	#$fe	;	;
+
+x3sgnd8	tfr	x,d	;	;
+	bitb	#$60	;	;
+	bpl	1f	;	;
+	negb		;	;
+	sex		;	;
+	jsr	x3sgnd8	;	;
+	coma		;	;
+	comb		;	;
+	addd	#$0001	;	;
+	rts		;	;
+1	beq	2f	;	;
+	ldd	#$8000	;	;
+	rts		;	;
+2	andb	#$
+	
+	
+
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
-o3solve	jsr	eatspc	;8(6433);int16_t getpoly(struct {uint8_t n; char* c;}* x)
+o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}* x)
 	stx	,--s	; 9	;{
 	clra		; 2	; uint16_t s[5]; // stack args to/from getpoly()
 	ldb	[,s]	;	; eatspc(x); // spaces compressed out of string
