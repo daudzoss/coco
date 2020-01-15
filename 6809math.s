@@ -188,21 +188,23 @@ x3sgnd8	stx	,--s	;	;int16_t x3sgnd8(register int8_t x) {
 	andb	#$fe	;	;
 	
 ;;; optimized for speed (and constant time) using a lookup table:
-	ldd	#$????	; 3	;int16_t x3sgnd8(int16_t x) {
+	ldd	#$????	; 3	;int16_t x3sgnd8(register int8_t x) {
 	rts		; 5	; int16_t lut = {
+	...
 x3sgnd8	tfr	x,d	; 7	;               };
-	bitb	#$60	; 2	; if ()
-	bmi	2f	; 3	;
-	bne	3f	; 3	;
-1	ldd	#$8000	; 3	;
-	rts		; 5	;
-2	beq	1b	; 3	;
+;	sex
+	bitb	#$60	; 2	; register int16_t d = (int16_t)x;
+	bmi	2f	; 3	; if (((d & 0xff80) && !(d & 0x0060))
+	bne	3f	; 3	;     ||
+1	ldd	#$8000	; 3	;     (!(d & 0xff80) && (d & 0x0060)))
+	rts		; 5	;  return d = 0x8000; // NaN
+2	beq	1b	; 3	; else 
 3	andb	#$3f	; 2	;
 	asl		; 2	;
 	asl		; 2	;
 	lda	#$ff	; 2	;
-	ldx	#x3sgnd8; 3	;
-	jmp	d,x	; 3+	;}
+	ldx	#x3sgnd8; 3	;  return d = lut[d & 0x003f];
+	jmp	d,x	; 7(41) ;}
 
 	
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
