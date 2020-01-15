@@ -48,7 +48,10 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	clra		;	;     ++x; // ate the exponent, so undo our --x:
 	aslb		;	;   } // we now have coefficient in y, exp in b
 	andb	0x06	;	;   --x; // back up to get potential next term
-	sty	d,s	;	;   s[b -'0'] = y;
+	lead	d,s	;	;
+	exg	d,y	;	;
+	addd	,y	;	;
+	std	,y	;	;   s[b - '0'] += y;
 	bra	getpoly	;	;   continue;
 4	lda	#$ff	;	;
 	ldb	#$ff	;	;  } else
