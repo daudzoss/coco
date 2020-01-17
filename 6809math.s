@@ -165,32 +165,53 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 
 ;;; cube an 8-bit signed number in low X byte into D, optimizing to fit into 16b
 x3sgnd8	stx	,--s	;	;int16_t x3sgnd8(register int8_t x) {
-	ldd	,s	;	; int16_t s, d;
-	sex		;	;
-	std	,s	;	; s = d = (int16_t) x;
-	bpl	1f	;	; if (d < 0)
-	leax	2,s	;	;
+	ldb	,s	;	; int16_t d;
+	bpl	1f	;	; int8_t s1 = x;
 	negb		;	;
-	sex		;	;
 	tfr	d,x	; 6	;
-	jsr	x3sgnd8	;	;
+	jsr	x3sgnd8	;	; if (x < 0)
 	coma		;	;
 	comb		;	;
 	addd	#$0001	;	;
-	rts		;	;  return d = -x3sgnd8(-d);// odd so f(-x)=-f(x)
+	tfr	d,x	;	;
+	bra	stackpop;	;  return d = -x3sgnd8(-x);// odd so f(-x)=-f(x)
 1	bitb	#$e0	;	;
-	beq	2f	;	; else if (d >= 32)
+	beq	2f	;	; else if (x >= 32)
 	ldd	#$8000	;	;
-	bra	stackpop;	;  return 0x8000; // cube won't fit in 16 bits
-2	bit	#1	;
-	beq	xiseven	;	; else if (
-	andb	#$fe	;	;
-	jsr	
-xiseven
+	bra	stackpop;	;  return d = 0x8000;// cube won't fit in 16 bit
+2	leas	1,s	;	;
+	andb	#$1e	;	; else { // square of largest even integer <= x,
+	tfr	b,a	;	;        // as mult of 4, fits in 8 bits d9..d2
+	mul		;	;  d = (x & 1 ? x-1 : x) * (x & 1 ? x-1 : x);
+	asra		;	;
+	rorb		;	;  
+	asra		;	;  
+	rorb		;	;  d >>= 2; // shift them down to d7..d0
+	lda	,s	;	;
+	stb	,-s	;	;  uint8_t s0 = (uint8_t) d; // store square
+	mul		;	;  d *= (x & 1 ? x-1 : x); // do a 2nd multiply
+	aslb		;	;
+	rola		;	;
+	aslb		;	;
+	rola		;	;  d <<= 2; // then restore the cube as d14..d0
+	tfr	d,x	;	;
+	ldd	,s	;	;
+	andb	#1	;	;  if (x & 1) // if x really is even, we're done
+	beq	stackpop;	;   return d;
 
 
-stackpop
+
+
+
+
+
+
+
+
+
 	
+stackpopleas	2,s
+	tfr	x,d		;
 	rts
 	
 ;;; optimized for speed (and constant time) using a lookup table:
