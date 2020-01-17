@@ -1,7 +1,7 @@
 ;;; compress ' ' out of a length-prefixed string in situ, update new length byte
 eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	ldb	,x+	; 6	; uint8_t b = str->n;
-	tfr	x,y	; 7	; char* y = str->c, a;
+	tfr	x,y	; 6	; char* y = str->c, a;
 	bra	2f	; 3	;
 1	sta	,y+	; 6	; for (char* x = y; b--; x++)
 2	decb		; 2	;
@@ -10,12 +10,12 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	cmpa	#' '	; 2	;
 	beq	2b	; 3	;  if ((a = *x) != ' ')
 	bne	1b	; 3	;   *y++ = a;
-3	tfr	y,d	; 7	;
+3	tfr	y,d	; 6	;
 	subd	,s	; 6	; b = y - x; // (negative) delta in string size
 	addd	,s	; 6	;
 	ldx	,s++	; 8	;
 	stb	,x	; 4	; str->n += b; // less than or equal to original
-	rts		;5(6425);} // eatspc()
+	rts		;5(6169);} // eatspc()
 
 	bita	#$fe	; 	;
 	beq	notstring
@@ -49,7 +49,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	aslb		;	;   } // we now have coefficient in y, exp in b
 	andb	#$06	;	;   --x; // back up to get potential next term
 	lead	d,s	;	;
-	exg	d,y	;	;
+	exg	d,y	; 8	;
 	addd	,y	;	;
 	std	,y	;	;   s[b - '0'] += y;
 	bra	getpoly	;	;   continue;
@@ -57,7 +57,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	ldb	#$ff	;	;  } else
 	rts		;	;   return -1;// conversion failed
 5	clra		;	;
-	tfr	y,x	;	;
+	tfr	y,x	; 6	;
 	ldb	4,s	;	; }
 	orb	5,s	;	; 
 	orb	6,s	;	; x = y; // initial guess (or junk) is in x
