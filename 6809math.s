@@ -163,66 +163,52 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(945);} // get5bcd()
 
-;;; cube an 8-bit signed number in low X byte into D, optimizing to fit into 16b
-x3sgnd8	stx	,--s	;	;int16_t x3sgnd8(register int8_t x) {
-	ldd	,s	;	; int16_t s[2], d = x;
-	neg	1,s	;	; s[1] = 0x00ff & -x; // -x stored in low byte,
-	stb	,s	;	; s[1] |= d<<8;// original x stored in high byte
-	bpl	1f	;	; if (x < 0) {
-	negb		;	;  d = 0x00ff & -d; // d >= 0, 0x00ff&s[1] >= 0
-	jsr	2f	;	;
-	coma		;	;
-	comb		;	;
-	addd	#$0001	;	;  return -d;
-	bra	stackpop;	; } else { 
-1	nop		;	;
-2	bitb	#$e0	;	;
-	beq	3f	;	;  if (x >= 32) // would overflow an int16_t, so
-	ldd	#$8000	;	;   return d = 0x8000; // return a NaN
-	bra	stackpop;	;
-3	andb	#$1e	;	;  else { // square of largest even integer <=d,
-	lda	,s	;	;         // as mult of 4, fits in 8 bits d9..d2
-	mul		;	;   d = (d & 1 ? d-1 : d) * (d & 1 ? d-1 : d);
-	std	,--s	;	;
-	asl	1,s	;	;
-	rol	,s	;	;   s[0] = d<<1; // shift to bits 10..3 as 2*x^2
-	asra		;	;
-	rorb		;	;  
-	asra		;	;  
-	rorb		;	;   d >>= 2; // shift into d7..d0 to prepare for
-	lda	2,s	;	;
-	mul		;	;   d *= (s[1]>>8) & 1 ? (s[1]>>8)-1 : s[1]>>8;
-	aslb		;	;
-	rola		;	;
-	aslb		;	;
-	rola		;	;   d <<= 2; // then restore the cube as d15..d0
+;;; cube a 6-bit signed number sign-extended in X into D
+x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
+	ldd	,s	; 5	; int16_t s[2], d;
+	bpl	1f	; 3	; if ((s[1] = d = x) < 0) {
+	negb		; 2	;
+	sex		; 2	;
+	tfr	d,x	; 6	;
+	jsr	x3sgnd6	; 8(164);
+	coma		; 2	;
+	comb		; 2	;
+	addd	#$0001	; 4	;  return -x3sgnd6(-x);
+	bra	3f	; 3	; } else {
+1	neg	1,s	; 7	;  s[1] = 0x00ff & -d; // -d stored in low byte,
+	stb	,s	; 4	;  s[1]|= d<<8;// original d stored in high byte
+	bitb	#$60	; 2	;
+	beq	2f	; 3	;  if (x >= 32) // would overflow an int16_t, so
+	ldd	#$8000	; 3	;   return d = 0x8000; // return a NaN
+	bra	3f	; 3	;
+2	andb	#$1e	; 2	;  else { // square of largest even integer <= d
+	tfr	b,a	; 6	;   d = (d & 1) ? d-1 : d; // fits in bits 9..2
+	mul		; 11	;   d *= d;
+	std	,--s	; 8	;
+	asl	1,s	; 7	;
+	rol	,s	; 6	;   s[0] = d<<1; // shift to bits 10..3 as 2*x^2
+	asra		; 2	;
+	rorb		; 2	;  
+	asra		; 2	;  
+	rorb		; 2	;   d >>= 2; // shift into bits 7..0 for cube
+	lda	2,s	; 5	;
+	anda	#$1e	; 2	;
+	mul		; 11	;   d *= s[1] & 0x0100 ? (s[1]>>8)-1 : s[1]>>8;
+	aslb		; 2	;
+	rola		; 2	;
+	aslb		; 2	;
+	rola		; 2	;   d <<= 2; // then restore the cube bits 15..0
+	ror	2,s	; 7	;
+	bcc	3f	; 3	;   if (s[1] & 0x0100) // was odd, so +2*x^2 - x
+	addd	,s++	; 9	;    d += s[0] + (uint16_t)((uint8_t) s[1]);
+	clr	2,s	; 7	;
+	dec	2,s	; 7	;   return d;
+	addd	2,s	; 7	;  }
+3	leas	2,s	; 5	; }
+	rts		; 5(211);}
 	
-
-
-
-
-	tfr	d,x	;	;
-	ldd	,s	;	;
-	andb	#1	;	;  if (x & 1) // if x really is even, we're done
-	beq	stackpop;	;   return d;
-
-
-
-
-
-
-
-
-
-
-
-	
-stackpopleas	2,s
-	tfr	x,d		;
-	rts
-	
-;;; optimized for speed (and constant time) using a lookup table:
-;	fdb	$8000		;int16_t x3sgnd8(register int8_t x) {
+;;; optimized for speed (and constant speed at that) using a lookup table:
+;	fdb	$8000		;int16_t x3sgnd6(register int8_t x) {
 	fdb	$0000		; int16_t NaN = 0x8000, lut[32] = { 0,    // 0^3
 	fdb	$0001		;                                   1,    // 1^3
 	fdb	$0008		;                                   8,    // 2^3
@@ -255,7 +241,7 @@ stackpopleas	2,s
 	fdb	$5f45		;                                   24389,//29^3
 	fdb	$6978		;                                   27000,//30^3
 	fdb	$745f		;                                   29791 //31^3
-x3sgnd8	tfr	x,d	; 6	;                                 };
+x3sgnd6	tfr	x,d	; 6	;                                 };
 	bitb	#$60	; 2	; register int16_t d = (int16_t)x;
 	bmi	2f	; 3	; if (((d & 0xff80) && !(d & 0x0060))
 	bne	3f	; 3	;     ||
@@ -267,14 +253,14 @@ x3sgnd8	tfr	x,d	; 6	;                                 };
 	comb		; 2	;
 	coma		; 2	;
 	addd	#$0001	; 4	;
-	rts		; 5(60)	;  return d = -x3sgnd8(-d);// odd so f(-x)=-f(x)
+	rts		; 5(60)	;  return d = -x3sgnd6(-d);// odd so f(-x)=-f(x)
 3	lda	#$ff	; 2	;
 	aslb		; 2	;
 	orb	#$c0	; 2	;
-	ldx	#x3sgnd8; 3	; else
+	ldx	#x3sgnd6; 3	; else
 	ldd	d,x	; 9	;  return d = lut[d & 0x001f];
-	rts		; 5(37)	;} // x3sgnd8()
-	
+	rts		; 5(37)	;} // x3sgnd6()
+
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}* x)
 	stx	,--s	; 9	;{
