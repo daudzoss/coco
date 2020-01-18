@@ -165,35 +165,42 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 
 ;;; cube an 8-bit signed number in low X byte into D, optimizing to fit into 16b
 x3sgnd8	stx	,--s	;	;int16_t x3sgnd8(register int8_t x) {
-	ldb	,s	;	; int16_t d;
-	bpl	1f	;	; int8_t s1 = x;
-	negb		;	;
-	tfr	d,x	; 6	;
-	jsr	x3sgnd8	;	; if (x < 0)
+	ldd	,s	;	; int16_t s[2], d = x;
+	neg	1,s	;	; s[1] = 0x00ff & -x; // -x stored in low byte,
+	stb	,s	;	; s[1] |= d<<8;// original x stored in high byte
+	bpl	1f	;	; if (x < 0) {
+	negb		;	;  d = 0x00ff & -d; // d >= 0, 0x00ff&s[1] >= 0
+	jsr	2f	;	;
 	coma		;	;
 	comb		;	;
-	addd	#$0001	;	;
-	tfr	d,x	;	;
-	bra	stackpop;	;  return d = -x3sgnd8(-x);// odd so f(-x)=-f(x)
-1	bitb	#$e0	;	;
-	beq	2f	;	; else if (x >= 32)
-	ldd	#$8000	;	;
-	bra	stackpop;	;  return d = 0x8000;// cube won't fit in 16 bit
-2	leas	1,s	;	;
-	andb	#$1e	;	; else { // square of largest even integer <= x,
-	tfr	b,a	;	;        // as mult of 4, fits in 8 bits d9..d2
-	mul		;	;  d = (x & 1 ? x-1 : x) * (x & 1 ? x-1 : x);
+	addd	#$0001	;	;  return -d;
+	bra	stackpop;	; } else { 
+1	nop		;	;
+2	bitb	#$e0	;	;
+	beq	3f	;	;  if (x >= 32) // would overflow an int16_t, so
+	ldd	#$8000	;	;   return d = 0x8000; // return a NaN
+	bra	stackpop;	;
+3	andb	#$1e	;	;  else { // square of largest even integer <=d,
+	lda	,s	;	;         // as mult of 4, fits in 8 bits d9..d2
+	mul		;	;   d = (d & 1 ? d-1 : d) * (d & 1 ? d-1 : d);
+	std	,--s	;	;
+	asl	1,s	;	;
+	rol	,s	;	;   s[0] = d<<1; // shift to bits 10..3 as 2*x^2
 	asra		;	;
 	rorb		;	;  
 	asra		;	;  
-	rorb		;	;  d >>= 2; // shift them down to d7..d0
-	lda	,s	;	;
-	stb	,-s	;	;  uint8_t s0 = (uint8_t) d; // store square
-	mul		;	;  d *= (x & 1 ? x-1 : x); // do a 2nd multiply
+	rorb		;	;   d >>= 2; // shift into d7..d0 to prepare for
+	lda	2,s	;	;
+	mul		;	;   d *= (s[1]>>8) & 1 ? (s[1]>>8)-1 : s[1]>>8;
 	aslb		;	;
 	rola		;	;
 	aslb		;	;
-	rola		;	;  d <<= 2; // then restore the cube as d14..d0
+	rola		;	;   d <<= 2; // then restore the cube as d15..d0
+	
+
+
+
+
 	tfr	d,x	;	;
 	ldd	,s	;	;
 	andb	#1	;	;  if (x & 1) // if x really is even, we're done
