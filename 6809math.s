@@ -173,7 +173,7 @@ x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	jsr	x3sgnd6	; 8(164);
 	coma		; 2	;
 	comb		; 2	;
-	addd	#$0001	; 4	;  return -x3sgnd6(-x);
+	addd	#$0001	; 4	;  return -x3sgnd6(x = -d);
 	bra	3f	; 3	; } else {
 1	neg	1,s	; 7	;  s[1] = 0x00ff & -d; // -d stored in low byte,
 	stb	,s	; 4	;  s[1]|= d<<8;// original d stored in high byte
@@ -183,8 +183,8 @@ x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	bra	3f	; 3	;
 2	andb	#$1e	; 2	;  else { // square of largest even integer <= d
 	tfr	b,a	; 6	;   d = (d & 1) ? d-1 : d; // fits in bits 9..2
-	mul		; 11	;   d *= d;
-	std	,--s	; 8	;
+	mul		; 11	;   d *= d; // using the algebraic identity:
+	std	,--s	; 8	;           // x(x-1)^2 = x^3 - 2x^2 + x
 	asl	1,s	; 7	;
 	rol	,s	; 6	;   s[0] = d<<1; // shift to bits 10..3 as 2*x^2
 	asra		; 2	;
@@ -192,20 +192,22 @@ x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	asra		; 2	;  
 	rorb		; 2	;   d >>= 2; // shift into bits 7..0 for cube
 	lda	2,s	; 5	;
-	anda	#$1e	; 2	;
-	mul		; 11	;   d *= s[1] & 0x0100 ? (s[1]>>8)-1 : s[1]>>8;
+	mul		; 11	;   d *= s[1]>>8; // stored copy of x
 	aslb		; 2	;
 	rola		; 2	;
 	aslb		; 2	;
 	rola		; 2	;   d <<= 2; // then restore the cube bits 15..0
 	ror	2,s	; 7	;
-	bcc	3f	; 3	;   if (s[1] & 0x0100) // was odd, so +2*x^2 - x
-	addd	,s++	; 9	;    d += s[0] + (uint16_t)((uint8_t) s[1]);
+	bcc	4f	; 3	;   if (s[1] & 0x0100) { // was odd, so +2*x^2-x
+	addd	,s++	; 9	;    d += s[0]; // 2*x^2
 	clr	2,s	; 7	;
-	dec	2,s	; 7	;   return d;
-	addd	2,s	; 7	;  }
-3	leas	2,s	; 5	; }
-	rts		; 5(211);}
+	dec	2,s	; 7	;    d += 0x00ff & s[1]; // -x
+	addd	2,s	; 7	;   }
+3	leas	2,s	; 5	;   return d;
+	rts		; 5(209);  }
+4	leas	4,s	; 5	; }
+	rts		; 5(209);}
+
 	
 ;;; optimized for speed (and constant speed at that) using a lookup table:
 ;	fdb	$8000		;int16_t x3sgnd6(register int8_t x) {
