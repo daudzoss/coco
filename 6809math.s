@@ -164,6 +164,7 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	rts		; 5(945);} // get5bcd()
 
 ;;; cube a 6-bit signed number sign-extended in X into D
+	if SIZE_OVER_SPEED
 x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	ldd	,s	; 5	; int16_t s[2], d;
 	bpl	1f	; 3	; if ((s[1] = d = x) < 0) {
@@ -207,8 +208,7 @@ x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	rts		; 5(209);  }
 4	leas	4,s	; 5	; }
 	rts		; 5(209);}
-
-	
+	elsif SPEED_OVER_SIZE
 ;;; optimized for speed (and constant speed at that) using a lookup table:
 ;	fdb	$8000		;int16_t x3sgnd6(register int8_t x) {
 	fdb	$0000		; int16_t NaN = 0x8000, lut[32] = { 0,    // 0^3
@@ -252,8 +252,8 @@ x3sgnd6	tfr	x,d	; 6	;                                 };
 2	beq	1b	; 3	; else if (d < 0)
 	negb		; 2	;
 	jsr	3f	; 8(31)	;
-	comb		; 2	;
 	coma		; 2	;
+	comb		; 2	;
 	addd	#$0001	; 4	;
 	rts		; 5(60)	;  return d = -x3sgnd6(-d);// odd so f(-x)=-f(x)
 3	lda	#$ff	; 2	;
@@ -262,6 +262,7 @@ x3sgnd6	tfr	x,d	; 6	;                                 };
 	ldx	#x3sgnd6; 3	; else
 	ldd	d,x	; 9	;  return d = lut[d & 0x001f];
 	rts		; 5(37)	;} // x3sgnd6()
+	endif
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}* x)
