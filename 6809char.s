@@ -29,7 +29,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
 	cmpa	#','	;	;
 	bne	1f	;	;   if (a == ',') {// comma before initial guess
-	jsr	get5bcd	;	;    b = get5bcd(&x, &y);
+	jsr	get5bcd	;	;    uint8_t b = get5bcd(&x, &y);
 	tstb		;	;    if (b == 0)
 	beq	4f	;	;     return -1;// no value provided after comma
 	bra	5f	;	;    break; // initial guess (or junk) is in y
@@ -48,6 +48,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	clra		;	;     ++x; // ate the exponent, so undo our --x:
 	aslb		;	;   } // we now have coefficient in y, exp in b
 	andb	#$06	;	;   --x; // back up to get potential next term
+	addb	#$02	;	;
 	sts	,--s	;	;
 	addd	,s++	;	;
 	exg	d,y	; 8	;
@@ -57,8 +58,8 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 4	lda	#$ff	;	;
 	ldb	#$ff	;	;  } else
 	rts		;	;   return -1;// conversion failed
-5	clra		;	;
-	tfr	y,x	; 6	;
+5	tfr	y,x	; 6	;
+	clra		;	;
 	ldb	4,s	;	; }
 	orb	5,s	;	; 
 	orb	6,s	;	; x = y; // initial guess (or junk) is in x
