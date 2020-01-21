@@ -163,6 +163,10 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(945);} // get5bcd()
 
+;;; multiply an 8-bit signed number in X by a 16-bit signed number in D
+x8mul16
+	rts
+	
 ;;; cube a 6-bit signed number sign-extended in X into D
 	if SIZE_OVER_SPEED
 x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
@@ -264,8 +268,58 @@ x3sgnd6	tfr	x,d	; 6	;                                 };
 	rts		; 5(37)	;} // x3sgnd6()
 	endif
 
+chkdNaN	macro
+	andcc	#CLV	;	;inline uint8_t chkdNaN(int16_t d, uint8_t cc) {
+	aslb		;	; if (d & 0x007f)
+	bne	1f	;	;  return cc & ~(1<<1); // V flag clear
+	rola		;	; if (d & 0x7f80)
+	bne	1f	;	;  return cc & ~(1<<1); // V flag clear
+	bcc	1f	;	; return cc | (1<<1); // V flag set
+	orcc	#SEV	;	;} //
+1
+	endm
+	
+o3eval	stx	,--s	;	;o3eval(int16_t x, int16_t s[4]) {
+	ldd	,s	;	; int16_t sum;
+	tsta		;	; register uint16_t d;
+	beq	2f	;	; // s+0: value // s+2: |x| // s+3: x // s+4: PC
+	inc	,s	;	; // s+6: a0 // s+8: a1 // s+10: a2 // s+12: a3
+	beq	1f	;	;
+	ldd	#$8000	;	; 
+	leas	2,s	;	; if (x < -127 || x > 127)
+	rts		;	;  return 0x8000; // NaN
+1	comb		;	; // store the absolute value of x in upper byte
+2	stb	,s	;	; x = (0x00ff & x) | (((x < 0) ? -x : x) << 8);
+	ldd	4,s	;	;
+	std	,--s	;	; sum = s[0];
+	ldd	8,s	;	;
+	ldx	2,s	;	;
+	jsr	x8mul16	;	;
+	
+	
+	
+	addd	,s	;	;
+	bvs	overf	;	;	
+	std	,s	;	; sum += (x & 0xff) * s[1];
+	lda	2,s	;	;
+	ldb	2,s	;	;
+	mul		;	; d = x * x;
+	tsta		;	;
+	bne	cannot_accept_16b
+	tfr	d,x	;	;
+	ldd	10,s	;	;
+	jsr	x8mul16	;	;
+* check NaNs
+	addd	,s	;	;
+	bvs	overf	;	;	
+	std	,s	;	;
+cannot_accept_16b
+	tfr	
+	ldx	2,s	;	;
+	jsr	
+
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
-o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}* x)
+o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	stx	,--s	; 9	;{
 	clra		; 2	; uint16_t s[5]; // stack args to/from getpoly()
 	ldb	[,s]	;	; eatspc(x); // spaces compressed out of string
@@ -280,7 +334,7 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}* x)
 	clr	2,s	; 7	;
 	clr	1,s	; 7	; s[0] = 0; // x^0 coeff at stack pointer + 0
 	clr	,s	; 6	; // advance past size byte to string start:
-	leax	1,x	; 5	; union {char* c, int16_t i} x = x++;
+	leax	1,x	; 5	; union {char* c, int16_t i}* x = 1 + (void*)x;
 	jsr	getpoly	;5()    ; uint16_t d = getpoly(&x, s);
 	tstb		;	;
 	bne	1f	;	; if (!d) { // no vars encountered
@@ -291,5 +345,5 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}* x)
 1	tsta		;	;
 	bpl	2f	;	; } else if (d < 0) {
 error	
-2	
+2	jsr	o3eval	;	;
 	
