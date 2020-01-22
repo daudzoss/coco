@@ -269,51 +269,54 @@ x3sgnd6	tfr	x,d	; 6	;                                 };
 	endif
 
 ifisNaN	macro
-	aslb		;	;inline uint8_t ifisNaN(int16_t d, (void*)(f)()) {
+	aslb		;	;inline uint8_t ifisNaN(int16_t d, void(*f)()) {
 	bne	2f	;	;
 	rola		;	;
 	bne	1f	;	;
 	bcc	1f	;	;
 	bra	\1	;	; if (d == 0x8000)
-1	rora		;	;  (*f)();
+1	rora		;	;  (*f)(); // actually a goto
 2	rorb		;	;} // ifisNaN()
 	endm
 	
-o3eval	stx	,--s	;	;o3eval(int16_t x, int16_t s[4]) {
+o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 	ldd	,s	;	; int16_t sum;
-	tsta		;	; register int17_t d;
+	tsta		;	; register union { int16_t d; int8_t a, b; } d;
 	beq	2f	;	; // s+0: value // s+2: |x| // s+3: x // s+4: PC
 	inc	,s	;	; // s+6: a0 // s+8: a1 // s+10: a2 // s+12: a3
-	beq	1f	;	;
-	ldd	#$8000	;	; 
-	leas	2,s	;	; if (x < -127 || x > 127)
-	rts		;	;  return 0x8000; // NaN
-1	comb		;	; // store the absolute value of x in upper byte
-2	stb	,s	;	; x = (0x00ff & x) | (((x < 0) ? -x : x) << 8);
+	bne	1f	;	;
+	tstb		;	;
+	bpl	1f	;	;
+	negb		;	; if (x < -127 || x > 255)
+	bra	2f	;	;  x = (0x00ff & x); // can't store |x| in upper
+1	ldb	#0x00	;	; else
+2	stb	,s	;	;  x = (0x00ff & x) | (((x > 0) ? x : -x) << 8);
 	ldd	4,s	;	;
-	std	,--s	;	; sum = s[0];
+	std	,--s	;	; sum = s[0]; // = a0
 	ldd	8,s	;	;
 	jsr	x8mul16	;	; d = (x & 0xff) * s[1];
 	ifisNaN	overf	;	; if (d < -32767 || d > 32767) goto overf;
 	addd	,s	;	; d += sum;
 	bvs	overf	;	; if (d < -32767 || d > 32767) goto overf;
-	std	,s	;	; sum = d;
+	std	,s	;	; sum = d; // = a0 + a1 x
 	lda	2,s	;	;
-	ldb	2,s	;	;
-	mul		;	; d = (x & 0xff) * (x & 0xff);
-	tsta		;	;
-	bne	3f	;	;
+	ldb	2,s	;	; d.a = d.b = (x > 0) ? x : -x; // |x|
+	mul		;	; d = (uint8_t) d.a * (uint8_t) d.b;
+	bne	3f	;	; if (x < -127 || x > 255)
+
+3	tsta		;	;
+	bne	4f	;	;
 	tfr	d,x	;	; if (d <= 255)
 	ldd	10,s	;	;  d *= s[2];
-	bra	5f	;	;
-3	tst	10,s	;	; else if (s[2] <= 255
-	beq	4f	;	;  d *
+	bra	6f	;	;
+4	tst	10,s	;	; else if (s[2] <= 255
+	beq	5f	;	;  d *
 
 
 
 
-4	ldx	10,s	;	; else
-5	jsr	x8mul16	;	;
+5	ldx	10,s	;	; else
+6	jsr	x8mul16	;	;
 	ifisNaN	overf	;	;  if (d < -32767 || d > 32767) goto overf;
 	addd	,s	;	;  d += sum;
 	bvs	overf	;	;  if (d < -32767 || d > 32767) goto overf;	
