@@ -164,39 +164,41 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	rts		; 5(945);} // get5bcd()
 
 ;;; multiply an 8-bit signed number in X by a 16-bit signed number in D
-x8mul16	stx	,--s		;int16_t x8mul16(int8_t x, uint16_t d) {
-	std	,--d		; // s+2: copy of x
-	eora	3,s		; // s+0: copy of d
-	sta	2,s		; int8_t s/*ign of return value*/ = (d>>8) ^ x;
-	lda	3,s		;
-	bpl	1f		; if (x < 0)
-	nega			;
-	sta	3,s		;  x = -x;
-1	ldb	,s		; if (d < 0)
-	bpl	2f		;
-	com	,s		;
-	com	1,s		;
-	ldd	#$0001		;
-	addd	,s		;
-	std	,s		;  d = -d;
-	ldb	,s		;
-2	mul			; d = 
-	tsta			;
-	bne	overf		;
-	std	,s		;
-	ldb	1,s		;
-	clr	1,s		;
-	lda	3,s		;
-	mul			;
-	addd	,s		;
-	bvs	overf		;
-	tst	2,s		;
-	bpl	3f		;
-	coma			;
-	comb			;
-	addd	#$0001		;
-3	leas	4,s		;
-	rts			;}
+x8mul16	stx	,--s	;	;int16_t x8mul16(int8_t x, uint16_t d) {
+	std	,--d	;	; // s+2: sign storage post-abs() s+3: copy of x
+	eora	3,s	;	; // s+0: copy of d
+	sta	2,s	;	; int8_t s/*ign of product*/ = (d>>8) ^ x;
+	lda	3,s	;	; uint16_t product; // = (256a+b)x = 256ax+bx
+	bpl	1f	;	; if (x < 0)
+	nega		;	;
+	sta	3,s	;	;  x = -x;
+1	ldb	,s	;	;
+	bpl	2f	;	; if (d < 0)
+	com	,s	;	;
+	com	1,s	;	;
+	ldd	#$0001	;	;
+	addd	,s	;	;
+	std	,s	;	;  d = -d; // = 256a + b
+	ldb	,s	;	;
+2	mul		;	; product = x * ((d & 0xff00) >> 8);
+	tsta		;	;
+	bne	3f	;	; if (product <= 255) {
+	std	,s	;	;
+	ldb	1,s	;	;
+	clr	1,s	;	;  product <<= 8; // = 256ax
+	lda	3,s	;	;
+	mul		;	;
+	addd	,s	;	;  product += x * (d & 0x00ff); // = 256ax + bx
+	bvs	3f	;	;  if (product <= 32767)
+	tst	2,s	;	;
+	bpl	4f	;	;
+	coma		;	;
+	comb		;	;
+	addd	#$0001	;	;
+	bra	4f	;	;   return (s > 0) ? product : -product;
+3	ldd	#$8000	;	; }	
+4	leas	4,s	;	; return 0x8000; // NaN
+	rts		;	;} // x8mul16()
 	
 ;;; cube a 6-bit signed number sign-extended in X into D
 	if SIZE_OVER_SPEED
