@@ -164,8 +164,39 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	rts		; 5(945);} // get5bcd()
 
 ;;; multiply an 8-bit signed number in X by a 16-bit signed number in D
-x8mul16
-	rts
+x8mul16	stx	,--s		;
+	std	,--d		;
+	eora	3,s		;
+	sta	2,s		;
+	lda	3,s		;
+	bpl	1f		;
+	nega			;
+	sta	3,s		;
+1	ldb	,s		;
+	bpl	2f		;
+	com	,s		;
+	com	1,s		;
+	ldd	#$0001		;
+	addd	,s		;
+	std	,s		;
+	ldb	,s		;
+2	mul			;
+	tsta			;
+	bne	overf		;
+	std	,s		;
+	ldb	1,s		;
+	clr	1,s		;
+	lda	3,s		;
+	mul			;
+	addd	,s		;
+	bvs	overf		;
+	tst	2,s		;
+	bpl	3f		;
+	coma			;
+	comb			;
+	addd	#$0001		;
+3	leas	4,s		;
+	rts			;
 	
 ;;; cube a 6-bit signed number sign-extended in X into D
 	if SIZE_OVER_SPEED
@@ -297,9 +328,9 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 	ldd	8,s	;	; if (s[1]) {
 	beq	3f	;	;
 	jsr	x8mul16	;	;  d.d = (x & 0xff) * s[1];
-	ifisNaN	overf	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
 	addd	,s	;	;  d.d += sum;
-	bvs	overf	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	bvs	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
 	std	,s	;	;  sum = d.d; // = a0 + a1 x
 
 3	ldd	10,s	;	; }
@@ -309,7 +340,7 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 	mul		;	;  d.d = d.a * d.b;
 	bne	4f	;	;
 	tst	3,s	;	;  if (x < -127 || x > 255)
-	bne	overf	;	;   goto overf;
+	bne	10f	;	;   goto overf;
 4	tsta		;	;
 	bne	5f	;	;  if (d.d > 255 &&
 	tfr	d,x	;	;
@@ -317,20 +348,31 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 	bra	8f	;	;
 5	tst	10,s	;	;
 	beq	7f	;	;     s[2] > 255)
-	bra	overf	;	;   goto overf; // can't fit 
-7	ldx	10,s	;	;  else
+	bra	10f	;	;   goto overf; // FIXME can't fit for now until
+7	ldx	10,s	;	;  else // using (256*a+b)x=256*a*x+b*x identity
 8	jsr	x8mul16	;	;   d.d *= s[2];
-	ifisNan	overf	;	;  d.d += sum;
-	addd	,s	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
-	bvs	overf	;	;  sum = d.d; // = a0 + a1 x + a2 x^2
+	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	addd	,s	;	;  d.d += sum;
+	bvs	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;	
+	std	,s	;	;  sum = d.d; // = a0 + a1 x + a2 x^2
 
-9
-
-	ifisNaN	overf	;	;  if (d < -32767 || d > 32767) goto overf;
-	addd	,s	;	;  d += sum;
-	bvs	overf	;	;  if (d < -32767 || d > 32767) goto overf;	
-	std	,s	;	;  sum = d;
-
+9	ldd	12,s	;	; }
+	beq	11f	;	; if (s[3]) {
+	ldx	2,s	;	;
+	jsr	x3sgnd6	;	;  d.d = x * x * x;
+	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	ldx	12,s	;	;
+	jsr	x8mul16	;	;
+	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	addd	,s	;	;  d.d += sum;
+	bvs	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;	
+	std	,s	;	;  sum = d.d; // = a0 + a1 x + a2 x^2 + a3 x^3
+	bra	11f	;	; }
+10	ldd	#$8000	;	; return d.d;
+	std	,s	;	;
+11	ldd	,s	;	; overf: return 0x8000; // NaN
+	leas	4,s	;	;
+	rts		;	;} // o3eval()
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
