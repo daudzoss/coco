@@ -268,20 +268,20 @@ x3sgnd6	tfr	x,d	; 6	;                                 };
 	rts		; 5(37)	;} // x3sgnd6()
 	endif
 
-chkdNaN	macro
-	andcc	#CLV	;	;inline uint8_t chkdNaN(int16_t d, uint8_t cc) {
-	aslb		;	; if (d & 0x007f)
-	bne	1f	;	;  return cc & ~(1<<1); // V flag clear
-	rola		;	; if (d & 0x7f80)
-	bne	1f	;	;  return cc & ~(1<<1); // V flag clear
-	bcc	1f	;	; return cc | (1<<1); // V flag set
-	orcc	#SEV	;	;} //
-1
+ifisNaN	macro
+	aslb		;	;inline uint8_t ifisNaN(int16_t d, (void*)(f)()) {
+	bne	2f	;	;
+	rola		;	;
+	bne	1f	;	;
+	bcc	1f	;	;
+	bra	\1	;	; if (d == 0x8000)
+1	rora		;	;  (*f)();
+2	rorb		;	;} // ifisNaN()
 	endm
 	
 o3eval	stx	,--s	;	;o3eval(int16_t x, int16_t s[4]) {
 	ldd	,s	;	; int16_t sum;
-	tsta		;	; register uint16_t d;
+	tsta		;	; register int17_t d;
 	beq	2f	;	; // s+0: value // s+2: |x| // s+3: x // s+4: PC
 	inc	,s	;	; // s+6: a0 // s+8: a1 // s+10: a2 // s+12: a3
 	beq	1f	;	;
@@ -293,30 +293,32 @@ o3eval	stx	,--s	;	;o3eval(int16_t x, int16_t s[4]) {
 	ldd	4,s	;	;
 	std	,--s	;	; sum = s[0];
 	ldd	8,s	;	;
-	ldx	2,s	;	;
-	jsr	x8mul16	;	;
-	
-	
-	
-	addd	,s	;	;
-	bvs	overf	;	;	
-	std	,s	;	; sum += (x & 0xff) * s[1];
+	jsr	x8mul16	;	; d = (x & 0xff) * s[1];
+	ifisNaN	overf	;	; if (d < -32767 || d > 32767) goto overf;
+	addd	,s	;	; d += sum;
+	bvs	overf	;	; if (d < -32767 || d > 32767) goto overf;
+	std	,s	;	; sum = d;
 	lda	2,s	;	;
 	ldb	2,s	;	;
-	mul		;	; d = x * x;
+	mul		;	; d = (x & 0xff) * (x & 0xff);
 	tsta		;	;
-	bne	cannot_accept_16b
-	tfr	d,x	;	;
-	ldd	10,s	;	;
-	jsr	x8mul16	;	;
-* check NaNs
-	addd	,s	;	;
-	bvs	overf	;	;	
-	std	,s	;	;
-cannot_accept_16b
-	tfr	
-	ldx	2,s	;	;
-	jsr	
+	bne	3f	;	;
+	tfr	d,x	;	; if (d <= 255)
+	ldd	10,s	;	;  d *= s[2];
+	bra	5f	;	;
+3	tst	10,s	;	; else if (s[2] <= 255
+	beq	4f	;	;  d *
+
+
+
+
+4	ldx	10,s	;	; else
+5	jsr	x8mul16	;	;
+	ifisNaN	overf	;	;  if (d < -32767 || d > 32767) goto overf;
+	addd	,s	;	;  d += sum;
+	bvs	overf	;	;  if (d < -32767 || d > 32767) goto overf;	
+	std	,s	;	;  sum = d;
+
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
