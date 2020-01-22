@@ -293,30 +293,39 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 2	stb	,s	;	;  x = (0x00ff & x) | (((x > 0) ? x : -x) << 8);
 	ldd	4,s	;	;
 	std	,--s	;	; sum = s[0]; // = a0
-	ldd	8,s	;	;
-	jsr	x8mul16	;	; d = (x & 0xff) * s[1];
-	ifisNaN	overf	;	; if (d < -32767 || d > 32767) goto overf;
-	addd	,s	;	; d += sum;
-	bvs	overf	;	; if (d < -32767 || d > 32767) goto overf;
-	std	,s	;	; sum = d; // = a0 + a1 x
+	
+	ldd	8,s	;	; if (s[1]) {
+	beq	3f	;	;
+	jsr	x8mul16	;	;  d.d = (x & 0xff) * s[1];
+	ifisNaN	overf	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	addd	,s	;	;  d.d += sum;
+	bvs	overf	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	std	,s	;	;  sum = d.d; // = a0 + a1 x
+
+3	ldd	10,s	;	; }
+	beq	9	;	; if (s[2]) {
 	lda	2,s	;	;
-	ldb	2,s	;	; d.a = d.b = (x > 0) ? x : -x; // |x|
-	mul		;	; d = (uint8_t) d.a * (uint8_t) d.b;
-	bne	3f	;	; if (x < -127 || x > 255)
-
-3	tsta		;	;
+	ldb	2,s	;	;  d.a = d.b = (uint8_t)((x>0) ? x : -x); // |x|
+	mul		;	;  d.d = d.a * d.b;
 	bne	4f	;	;
-	tfr	d,x	;	; if (d <= 255)
-	ldd	10,s	;	;  d *= s[2];
-	bra	6f	;	;
-4	tst	10,s	;	; else if (s[2] <= 255
-	beq	5f	;	;  d *
+	tst	3,s	;	;  if (x < -127 || x > 255)
+	bne	overf	;	;   goto overf;
+4	tsta		;	;
+	bne	5f	;	;  if (d.d > 255 &&
+	tfr	d,x	;	;
+	ldd	10,s	;	;
+	bra	8f	;	;
+5	tst	10,s	;	;
+	beq	7f	;	;     s[2] > 255)
+	bra	overf	;	;   goto overf; // can't fit 
+7	ldx	10,s	;	;  else
+8	jsr	x8mul16	;	;   d.d *= s[2];
+	ifisNan	overf	;	;  d.d += sum;
+	addd	,s	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
+	bvs	overf	;	;  sum = d.d; // = a0 + a1 x + a2 x^2
 
+9
 
-
-
-5	ldx	10,s	;	; else
-6	jsr	x8mul16	;	;
 	ifisNaN	overf	;	;  if (d < -32767 || d > 32767) goto overf;
 	addd	,s	;	;  d += sum;
 	bvs	overf	;	;  if (d < -32767 || d > 32767) goto overf;	
