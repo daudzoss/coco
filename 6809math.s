@@ -163,6 +163,83 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(945);} // get5bcd()
 
+;;; divide a 16-bit signed quantity in X into a 16-bit signed quantity in D
+x16divd	std	,--s	;	;int16_t x16divd(int16_t d, int16_t x) {
+	stx	,--s	;	; int16_t s[2]; // to detect crossing 0
+	ldx	#$0000	;	; s[1] = d; s[0] = x;
+	beq	divby0	;	; for (x = 0; s[0]; x++) {
+1	addd	,s	;	;  if ((d += s[0]) == 0)
+	beq	normdr	;	;   break; // divides exactly (no remainder)
+	bpl	d	;	;  if (d < 0) {
+	tst	2,s	;	;
+	bmi	2	;	;   if (s 
+2				;
+
+3
+
+;;; now try multiplying using x8mul16()
+
+;;; 
+;;; cf.
+				;inline uint8_t DIVIDE(uint16_t* dividend,
+				;                      uint8_t divisor,
+				;                      uint8_t* quotient,
+				;                      uint8_t* quo_hi) {
+				; if (divisor == 0)
+				;  return 0; // Z flag will be clear if div by 0
+divnot0
+				; else if (*dividend == 0)
+				;
+				;
+				;
+				;
+				;
+				;
+				;  return 0; // Z flag will be set if actually 0
+divsub1
+				; else {
+				;  // subtract one from dividend to ease compare
+				;
+				;
+divsubc
+				;
+divloop
+				;  uint16_t result = (*dividend) / divisor;
+				;
+				;
+				;  if (result > 0x00ff) {
+				;   if (quo_hi) {
+				;
+				;    *quotient = result & 0x00ff;
+				;    *quo_hi = result >> 8;
+	
+				;   } else
+				;    *quotient = 0xff; // clamp to 8 bits
+				;  }
+divchek
+				;  // works with non-static divisor, not re-read
+				;  if (*quotient)
+				;   return *quotient; // Z flag will be clear
+				;  else { // count # fewer leading 0s in divisor
+				;   uint8_t w = 0;
+				;
+				;   *dividend ^= divisor;
+				;   while (*dividend & 0x80 == 0)
+divbias
+				;    *dividend <<= 1;
+				;   while (*dividend & 0x80) {
+				;    *dividend <<= 1;
+divroll
+				;    w = 0x80 | (w >> 1);
+				;   }
+				;   return w; // Z flag will be set
+				;  }
+				; }
+				;} // DIVIDE()
+divdone
+;;; 
+;;; 
+	
 ;;; multiply an 8-bit signed number in X by a 16-bit signed number in D
 x8mul16	stx	,--s	;	;int16_t x8mul16(int8_t x, uint16_t d) {
 	std	,--d	;	; // s+2: sign storage post-abs() s+3: copy of x
@@ -202,103 +279,103 @@ x8mul16	stx	,--s	;	;int16_t x8mul16(int8_t x, uint16_t d) {
 	
 ;;; cube a 6-bit signed number sign-extended in X into D
 	if SIZE_OVER_SPEED
-x3sgnd6	stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
-	ldd	,s	; 5	; int16_t s[2], d;
-	bpl	1f	; 3	; if ((s[1] = d = x) < 0) {
-	negb		; 2	;
-	sex		; 2	;
-	tfr	d,x	; 6	;
-	jsr	x3sgnd6	; 8(164);
-	coma		; 2	;
-	comb		; 2	;
-	addd	#$0001	; 4	;  return -x3sgnd6(x = -d);
-	bra	3f	; 3	; } else {
-1	neg	1,s	; 7	;  s[1] = 0x00ff & -d; // -d stored in low byte,
-	stb	,s	; 4	;  s[1]|= d<<8;// original d stored in high byte
-	bitb	#$60	; 2	;
-	beq	2f	; 3	;  if (x >= 32) // would overflow an int16_t, so
-	ldd	#$8000	; 3	;   return d = 0x8000; // return a NaN
-	bra	3f	; 3	;
-2	andb	#$1e	; 2	;  else { // square of largest even integer <= d
-	tfr	b,a	; 6	;   d = (d & 1) ? d-1 : d; // fits in bits 9..2
-	mul		; 11	;   d *= d; // using the algebraic identity:
-	std	,--s	; 8	;           // x(x-1)^2 = x^3 - 2x^2 + x
-	asl	1,s	; 7	;
-	rol	,s	; 6	;   s[0] = d<<1; // shift to bits 10..3 as 2*x^2
-	asra		; 2	;
-	rorb		; 2	;  
-	asra		; 2	;  
-	rorb		; 2	;   d >>= 2; // shift into bits 7..0 for cube
-	lda	2,s	; 5	;
-	mul		; 11	;   d *= s[1]>>8; // stored copy of x
-	aslb		; 2	;
-	rola		; 2	;
-	aslb		; 2	;
-	rola		; 2	;   d <<= 2; // then restore the cube bits 15..0
-	ror	2,s	; 7	;
-	bcc	4f	; 3	;   if (s[1] & 0x0100) { // was odd, so +2*x^2-x
-	addd	,s++	; 9	;    d += s[0]; // 2*x^2
-	clr	2,s	; 7	;
-	dec	2,s	; 7	;    d += 0x00ff & s[1]; // -x
-	addd	2,s	; 7	;   }
-3	leas	2,s	; 5	;   return d;
-	rts		; 5(209);  }
-4	leas	4,s	; 5	; }
-	rts		; 5(209);}
+x3sgnd6	 stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
+	 ldd	,s	; 5	; int16_t s[2], d;
+	 bpl	1f	; 3	; if ((s[1] = d = x) < 0) {
+	 negb		; 2	;
+	 sex		; 2	;
+	 tfr	d,x	; 6	;
+	 jsr	x3sgnd6	; 8(164);
+	 coma		; 2	;
+	 comb		; 2	;
+	 addd	#$0001	; 4	;  return -x3sgnd6(x = -d);
+	 bra	3f	; 3	; } else {
+1	 neg	1,s	; 7	;  s[1] = 0x00ff & -d; // -d stored in low byte,
+	 stb	,s	; 4	;  s[1]|= d<<8;// original d stored in high byte
+	 bitb	#$60	; 2	;
+	 beq	2f	; 3	;  if (x >= 32) // would overflow an int16_t, so
+	 ldd	#$8000	; 3	;   return d = 0x8000; // return a NaN
+	 bra	3f	; 3	;
+2	 andb	#$1e	; 2	;  else { // square of largest even integer <= d
+	 tfr	b,a	; 6	;   d = (d & 1) ? d-1 : d; // fits in bits 9..2
+	 mul		; 11	;   d *= d; // using the algebraic identity:
+	 std	,--s	; 8	;           // x(x-1)^2 = x^3 - 2x^2 + x
+	 asl	1,s	; 7	;
+	 rol	,s	; 6	;   s[0] = d<<1; // shift to bits 10..3 as 2*x^2
+	 asra		; 2	;
+	 rorb		; 2	;  
+	 asra		; 2	;  
+	 rorb		; 2	;   d >>= 2; // shift into bits 7..0 for cube
+	 lda	2,s	; 5	;
+	 mul		; 11	;   d *= s[1]>>8; // stored copy of x
+	 aslb		; 2	;
+	 rola		; 2	;
+	 aslb		; 2	;
+	 rola		; 2	;   d <<= 2; // then restore the cube bits 15..0
+	 ror	2,s	; 7	;
+	 bcc	4f	; 3	;   if (s[1] & 0x0100) { // was odd, so +2*x^2-x
+	 addd	,s++	; 9	;    d += s[0]; // 2*x^2
+	 clr	2,s	; 7	;
+	 dec	2,s	; 7	;    d += 0x00ff & s[1]; // -x
+	 addd	2,s	; 7	;   }
+3	 leas	2,s	; 5	;   return d;
+	 rts		; 5(209);  }
+4	 leas	4,s	; 5	; }
+	 rts		; 5(209);}
 	elsif SPEED_OVER_SIZE
 ;;; optimized for speed (and constant speed at that) using a lookup table:
-;	fdb	$8000		;int16_t x3sgnd6(register int8_t x) {
-	fdb	$0000		; int16_t NaN = 0x8000, lut[32] = { 0,    // 0^3
-	fdb	$0001		;                                   1,    // 1^3
-	fdb	$0008		;                                   8,    // 2^3
-	fdb	$001b		;                                   27,   // 3^3
-	fdb	$0040		;                                   64,   // 4^3
-	fdb	$007d		;                                   125,  // 5^3
-	fdb	$00d8		;                                   216,  // 6^3
-	fdb	$0157		;                                   343,  // 7^3
-	fdb	$0200		;                                   512,  // 8^3
-	fdb	$2d9		;                                   729,  // 9^3
-	fdb	$03e8		;                                   1000, //10^3
-	fdb	$0533		;                                   1331, //11^3
-	fdb	$06c0		;                                   1728, //12^3
-	fdb	$0895		;                                   2197, //13^3
-	fdb	$0ab8		;                                   2744, //14^3
-	fdb	$0d2f		;                                   3375, //15^3
-	fdb	$1000		;                                   4096, //16^3
-	fdb	$1331		;                                   4913, //17^3
-	fdb	$16c8		;                                   5832, //18^3
-	fdb	$1acb		;                                   6859, //19^3
-	fdb	$1f40		;                                   8000, //20^3
-	fdb	$242d		;                                   9261, //21^3
-	fdb	$2998		;                                   10648,//22^3
-	fdb	$2f87		;                                   12167,//23^3
-	fdb	$3600		;                                   13824,//24^3
-	fdb	$3d09		;                                   15625,//25^3
-	fdb	$44a8		;                                   17576,//26^3
-	fdb	$4ce3		;                                   19683,//27^3
-	fdb	$55c0		;                                   21952,//28^3
-	fdb	$5f45		;                                   24389,//29^3
-	fdb	$6978		;                                   27000,//30^3
-	fdb	$745f		;                                   29791 //31^3
-x3sgnd6	tfr	x,d	; 6	;                                 };
-	bitb	#$60	; 2	; register int16_t d = (int16_t)x;
-	bmi	2f	; 3	; if (((d & 0xff80) && !(d & 0x0060))
-	bne	3f	; 3	;     ||
-1	ldd	#$8000	; 3	;     (!(d & 0xff80) && (d & 0x0060)))
-	rts		; 5	;  return d = NaN;
-2	beq	1b	; 3	; else if (d < 0)
-	negb		; 2	;
-	jsr	3f	; 8(31)	;
-	coma		; 2	;
-	comb		; 2	;
-	addd	#$0001	; 4	;
-	rts		; 5(60)	;  return d = -x3sgnd6(-d);// odd so f(-x)=-f(x)
-3	lda	#$ff	; 2	;
-	aslb		; 2	;
-	orb	#$c0	; 2	;
-	ldx	#x3sgnd6; 3	; else
-	ldd	d,x	; 9	;  return d = lut[d & 0x001f];
-	rts		; 5(37)	;} // x3sgnd6()
+;	 fdb	$8000		;int16_t x3sgnd6(register int8_t x) {
+	 fdb	$0000		; int16_t NaN = 0x8000, lut[32] = { 0,    // 0^3
+	 fdb	$0001		;                                   1,    // 1^3
+	 fdb	$0008		;                                   8,    // 2^3
+	 fdb	$001b		;                                   27,   // 3^3
+	 fdb	$0040		;                                   64,   // 4^3
+	 fdb	$007d		;                                   125,  // 5^3
+	 fdb	$00d8		;                                   216,  // 6^3
+	 fdb	$0157		;                                   343,  // 7^3
+	 fdb	$0200		;                                   512,  // 8^3
+	 fdb	$2d9		;                                   729,  // 9^3
+	 fdb	$03e8		;                                   1000, //10^3
+	 fdb	$0533		;                                   1331, //11^3
+	 fdb	$06c0		;                                   1728, //12^3
+	 fdb	$0895		;                                   2197, //13^3
+	 fdb	$0ab8		;                                   2744, //14^3
+	 fdb	$0d2f		;                                   3375, //15^3
+	 fdb	$1000		;                                   4096, //16^3
+	 fdb	$1331		;                                   4913, //17^3
+	 fdb	$16c8		;                                   5832, //18^3
+	 fdb	$1acb		;                                   6859, //19^3
+	 fdb	$1f40		;                                   8000, //20^3
+	 fdb	$242d		;                                   9261, //21^3
+	 fdb	$2998		;                                   10648,//22^3
+	 fdb	$2f87		;                                   12167,//23^3
+	 fdb	$3600		;                                   13824,//24^3
+	 fdb	$3d09		;                                   15625,//25^3
+	 fdb	$44a8		;                                   17576,//26^3
+	 fdb	$4ce3		;                                   19683,//27^3
+	 fdb	$55c0		;                                   21952,//28^3
+	 fdb	$5f45		;                                   24389,//29^3
+	 fdb	$6978		;                                   27000,//30^3
+	 fdb	$745f		;                                   29791 //31^3
+x3sgnd6	 tfr	x,d	; 6	;                                 };
+	 bitb	#$60	; 2	; register int16_t d = (int16_t)x;
+	 bmi	2f	; 3	; if (((d & 0xff80) && !(d & 0x0060))
+	 bne	3f	; 3	;     ||
+1	 ldd	#$8000	; 3	;     (!(d & 0xff80) && (d & 0x0060)))
+	 rts		; 5	;  return d = NaN;
+2	 beq	1b	; 3	; else if (d < 0)
+	 negb		; 2	;
+	 jsr	3f	; 8(31)	;
+	 coma		; 2	;
+	 comb		; 2	;
+	 addd	#$0001	; 4	;
+	 rts		; 5(60)	;  return d = -x3sgnd6(-d);// odd so f(-x)=-f(x)
+3	 lda	#$ff	; 2	;
+	 aslb		; 2	;
+	 orb	#$c0	; 2	;
+	 ldx	#x3sgnd6; 3	; else
+	 ldd	d,x	; 9	;  return d = lut[d & 0x001f];
+	 rts		; 5(37)	;} // x3sgnd6()
 	endif
 
 ifisNaN	macro
@@ -375,6 +452,35 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 11	ldd	,s	;	; overf: return 0x8000; // NaN
 	leas	4,s	;	;
 	rts		;	;} // o3eval()
+
+;;; compute the first derivative of the cubic polynomial evaluated at X
+o3drv1x	ldd	#$0000	;	;int16_t o3drv1x(int16_t x, int16_t s[4]) {
+	std	,--s	;	; int16_t s1[4];
+	if SPEED_OVER_SIZE ;12
+	 ldd	8,s	;	;
+	 std	,--s	;	;
+	 ldd	8,s	;	;
+	 std	,--s	;	;
+	 ldd	8,s	;	;
+	 std	,--s	;	;
+	elif SIZE_OVER_SPEED ;10
+	 inca		;	;
+0	 ldd	8,s	;	;
+	 std	,--s	;	;
+	 inca		;	;
+	 bita	#$04	;	;
+	 beq	0b	;	;
+	endif
+	ldd	4,s	;	; s1[3] = 0; // no cubic in derivative of same
+	aslb		;	;
+	rola		;	; s1[2] = 3 * s[3]; // a3 x^3 -> 3 a3 x^2
+	addd	4,s	;	;
+	std	4,s	;	; s1[1] = 2 * s[2]; // a2 x^2 -> 2 a2 x
+	asl	3,s	;	;
+	rol	2,s	;	; s1[0] = 1 * s[1]; // a1 x   ->   a1
+	jsr	o3eval	;	; return o3eval(x, s1);
+	leas	8,s	;	;} // o3drv1x()
+
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
