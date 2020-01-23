@@ -399,9 +399,12 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	dec	2,s	;	;
 	dec	3,s	;	;  s[1] = -1; // calculator mode
 	ldx	,s	;	;  x.i = s[0]; // initial guess x will be exact
-	bra	2f	;	;
-1	tsta		;	;
-	bpl	2f	;	; } else if (d < 0) {
-error	
-2	jsr	o3eval	;	;
-	
+	bra	3f	;	;
+1	ldx	#$0000	;	;
+	tsta		;	;
+	bpl	3f	;	; } else if (d < 0) {
+2	leas	10,s	;	;
+	ldd	#$8000	;	;
+	rts		;	;  return 0x8000; // NaN
+3	tfr	x,y
+	jsr	o3eval	;	; 
