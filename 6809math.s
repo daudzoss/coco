@@ -166,7 +166,7 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 ;;; divide a 16-bit signed quantity in X into a 16-bit signed quantity in D
 x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x)
 	stx	,s	;	; int16_t s[2]; // to detect crossing 0
-	beq	divby0	;	; if ((s[0] = x) == 0)
+	beq	6	;	; if ((s[0] = x) == 0)
 	std	2,s	;	;  return 0x0000; // divisor 0, return NaN 
 	beq 	4f	;	; if ((s[1] = d) == 0)
 	ldx	#$0000	;	;  return 0;
@@ -194,20 +194,16 @@ x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x)
 	bne	5f	;	;
 	ldx	#$0000	;	;
 5	cmpx	#$0000	;	;
-	bpl	alldone	;	; if (x > 0) { // nonzero remainder, subtract 1
+	bpl	alldone	;	; if (x > 0) // nonzero remainder, subtract 1
 	addd	#$ffff	;	;  d--; // from quotient rather than rounding up
-
-
-
-	
 	tst	3,s	;	;
-	bpl	alldone	;	; if (s[1] & 0x0080) {
+	bpl	alldone	;	; if (s[1] & 0x0080)
 	coma		;	;
 	comb		;	;
-	addd	#$0001	;	;
-	bra	6f
-	bra	7f
-6	leas	4,s	;	;
+	addd	#$0001	;	;  d = -d;
+	bra	7f	;	;
+6	ldd	#$8000	;	; // |remainder| = |divisor| + |x|
+7	leas	4,s	;	; return d; // floor of quotient
 	rts		;	;} // x16divd()
 ;;; now try multiplying using x8mul16()
 
