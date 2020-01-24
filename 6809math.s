@@ -164,28 +164,51 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	rts		; 5(945);} // get5bcd()
 
 ;;; divide a 16-bit signed quantity in X into a 16-bit signed quantity in D
-x16divd	std	,--s	;	;int16_t x16divd(int16_t d, i
-	beq	numwas0	;	; int16_t s[2]; // to detect crossing 0
-	stx	,--s	;	; if ((s[1] = d) == 0) return 0; // numerator 0
-	eora	,s
-	sta	1,s
-	eora	,s
-	beq	divby0	;	; if ((s[0] = x) == 0) return 0x0000; // NaN
-	ldx	#$0000	;	; 
-1	leax	1,x	;	; for (x = 0; s[0]; x++)
+x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x)
+	stx	,s	;	; int16_t s[2]; // to detect crossing 0
+	beq	divby0	;	; if ((s[0] = x) == 0)
+	std	2,s	;	;  return 0x0000; // divisor 0, return NaN 
+	beq 	4f	;	; if ((s[1] = d) == 0)
+	ldx	#$0000	;	;  return 0;
+	eora	,s	;	;       // maintain sign // remember signs' xor
+	sta	3,s	;	; s[1] = (0xff00 & s[1]) | ((d^x) >> 8);// in b7
+	bpl	0f	;	; if (s[1] & 0x0080 /* d^x<0 */) // quotient < 0
+	eora	,s	;	;
+	coma		;	;
+	comb		;	;
+	addd	#$0001	;	;
+	std	2,s	;	;  s[1] = d = -d; // now x and d have same sign
+	bra	1f	;	;
+0	eora	,s	;	;
+1	leax	1,x	;	; for (x = 1; s[0]; x++)
 	subd	,s	;	;  if ((d -= s[0]) == 0)
-	beq	normndr	;	;   break; // divides exactly (no remainder)
-	bpl	2	;	;  else if (d < 0) {
+	beq	3f	;	;   break; // divides exactly (no remainder)
+	bpl	2f	;	;  else if (d < 0) {
 	tst	2,s	;	;   if (s[1] > 0) 
-	bmi	1	;	;    break; // crossed 0
-	bra	3	;	;  } else if (s[1] < 0) {
+	bmi	1	;	;    break; // crossed 0 (positive to negative)
+	bra	3	;	;  } else if (d > 0)
 2	tst	2,s	;	;   if (s[1] < 0)
-	bpl	1	;	;    break;
-3
-4
-5	leas	4,s	;	;
+	bpl	1	;	;    break; // crossed 0 (negative to positive)
+3	exg	x,d	;	; int16_t temp = x, /*R*/ x = d, d /*Q*/ = temp;
+4	cmpx	,s	;	;
+	bne	5f	;	;
+	ldx	#$0000	;	;
+5	cmpx	#$0000	;	;
+	bpl	alldone	;	; if (x > 0) { // nonzero remainder, subtract 1
+	addd	#$ffff	;	;  d--; // from quotient rather than rounding up
 
 
+
+	
+	tst	3,s	;	;
+	bpl	alldone	;	; if (s[1] & 0x0080) {
+	coma		;	;
+	comb		;	;
+	addd	#$0001	;	;
+	bra	6f
+	bra	7f
+6	leas	4,s	;	;
+	rts		;	;} // x16divd()
 ;;; now try multiplying using x8mul16()
 
 ;;; 
