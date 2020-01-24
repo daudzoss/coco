@@ -167,6 +167,9 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 x16divd	std	,--s	;	;int16_t x16divd(int16_t d, i
 	beq	numwas0	;	; int16_t s[2]; // to detect crossing 0
 	stx	,--s	;	; if ((s[1] = d) == 0) return 0; // numerator 0
+	eora	,s
+	sta	1,s
+	eora	,s
 	beq	divby0	;	; if ((s[0] = x) == 0) return 0x0000; // NaN
 	ldx	#$0000	;	; 
 1	leax	1,x	;	; for (x = 0; s[0]; x++)
