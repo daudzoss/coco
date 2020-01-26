@@ -164,9 +164,9 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	rts		; 5(945);} // get5bcd()
 
 ;;; divide a 16-bit signed quantity in X into a 16-bit signed quantity in D
-x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x)
+x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 	stx	,s	;	; int16_t s[2]; // to detect crossing 0
-	beq	6	;	; if ((s[0] = x) == 0)
+	beq	6f	;	; if ((s[0] = x) == 0)
 	std	2,s	;	;  return 0x0000; // divisor 0, return NaN 
 	beq 	4f	;	; if ((s[1] = d) == 0)
 	ldx	#$0000	;	;  return 0;
@@ -185,19 +185,19 @@ x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x)
 	beq	3f	;	;   break; // divides exactly (no remainder)
 	bpl	2f	;	;  else if (d < 0) {
 	tst	2,s	;	;   if (s[1] > 0) 
-	bmi	1	;	;    break; // crossed 0 (positive to negative)
-	bra	3	;	;  } else if (d > 0)
+	bmi	1b	;	;    break; // crossed 0 (positive to negative)
+	bra	3f	;	;  } else if (d > 0)
 2	tst	2,s	;	;   if (s[1] < 0)
-	bpl	1	;	;    break; // crossed 0 (negative to positive)
+	bpl	1b	;	;    break; // crossed 0 (negative to positive)
 3	exg	x,d	;	; int16_t temp = x, /*R*/ x = d, d /*Q*/ = temp;
 4	cmpx	,s	;	;
 	bne	5f	;	;
 	ldx	#$0000	;	;
 5	cmpx	#$0000	;	;
-	bpl	alldone	;	; if (x > 0) // nonzero remainder, subtract 1
+	bpl	7f	;	; if (x > 0) // nonzero remainder, subtract 1
 	addd	#$ffff	;	;  d--; // from quotient rather than rounding up
 	tst	3,s	;	;
-	bpl	alldone	;	; if (s[1] & 0x0080)
+	bpl	7f	;	; if (s[1] & 0x0080)
 	coma		;	;
 	comb		;	;
 	addd	#$0001	;	;  d = -d;
@@ -270,7 +270,7 @@ divdone
 	
 ;;; multiply an 8-bit signed number in X by a 16-bit signed number in D
 x8mul16	stx	,--s	;	;int16_t x8mul16(int8_t x, uint16_t d) {
-	std	,--d	;	; // s+2: sign storage post-abs() s+3: copy of x
+	std	,--s	;	; // s+2: sign storage post-abs() s+3: copy of x
 	eora	3,s	;	; // s+0: copy of d
 	sta	2,s	;	; int8_t s/*ign of product*/ = (d>>8) ^ x;
 	lda	3,s	;	; uint16_t product; // = (256a+b)x = 256ax+bx
@@ -441,7 +441,7 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 	std	,s	;	;  sum = d.d; // = a0 + a1 x
 
 3	ldd	10,s	;	; }
-	beq	9	;	; if (s[2]) {
+	beq	9f	;	; if (s[2]) {
 	lda	2,s	;	;
 	ldb	2,s	;	;  d.a = d.b = (uint8_t)((x>0) ? x : -x); // |x|
 	mul		;	;  d.d = d.a * d.b;
@@ -484,14 +484,14 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 ;;; compute the first derivative of the cubic polynomial evaluated at X
 o3drv1x	ldd	#$0000	;	;int16_t o3drv1x(int16_t x, int16_t s[4]) {
 	std	,--s	;	; int16_t s1[4];
-	if SPEED_OVER_SIZE ;12
+	if SPEED_OVER_SIZE
 	 ldd	8,s	;	;
 	 std	,--s	;	;
 	 ldd	8,s	;	;
 	 std	,--s	;	;
 	 ldd	8,s	;	;
 	 std	,--s	;	;
-	elif SIZE_OVER_SPEED ;10
+	elsif SIZE_OVER_SPEED
 	 inca		;	;
 0	 ldd	8,s	;	;
 	 std	,--s	;	;
@@ -506,7 +506,7 @@ o3drv1x	ldd	#$0000	;	;int16_t o3drv1x(int16_t x, int16_t s[4]) {
 	std	4,s	;	; s1[1] = 2 * s[2]; // a2 x^2 -> 2 a2 x
 	asl	3,s	;	;
 	rol	2,s	;	; s1[0] = 1 * s[1]; // a1 x   ->   a1
-	jsr	o3eval	;	; return o3eval(x, s1);
+	jsr	o3eval	;	; return d = o3eval(x, s1);
 	leas	8,s	;	;} // o3drv1x()
 
 
@@ -517,7 +517,7 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	ldb	[,s]	;	; eatspc(x); // spaces compressed out of string
 	addd	,s	;	; // stop point for scan at stack pointer + 8:
 	std	,s	; 	; s[4] = x + x->n; // ECB string end at ptr+*ptr
-	leas	-8,s	; 	;
+	leas	-12,s	; 	;
 	clr	7,s	; 7	; s[3] = 0; // x^3 coeff at stack pointer + 6
 	clr	6,s	; 7	;
 	clr	5,s	; 7	; s[2] = 0; // x^2 coeff at stack pointer + 4
@@ -536,9 +536,22 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	bra	3f	;	;
 1	ldx	#$0000	;	;
 	tsta		;	;
-	bpl	3f	;	; } else if (d < 0) {
+	bpl	3f	;	; } else if (d < 0)
 2	leas	10,s	;	;
-	ldd	#$8000	;	;
-	rts		;	;  return 0x8000; // NaN
-3	tfr	x,y
-	jsr	o3eval	;	; 
+	ldd	#$8000	;	;  return 0x8000; // NaN
+	rts		;	;
+3	tfr	x,y	;	; while ((d = o3eval(x, s)) != 0) {
+	jsr	o3drv1x	;	;
+	std	8,s	;	;  int16_t derivative = o3drv1x(x);
+	jsr	o3eval	;	;
+	cmpd	#$0000	;	; 
+	beq	done	;	;
+	sty	,--s	;	; // current x
+ 	std	,--s	;	; // current f(x)
+	
+	tfr	d,x	;	;
+	ldd	,s++	;	;
+	jsr	x16divd	;	;
+	subd	,s++	;	;
+	tfr	d,x	;	;
+	bra	3b	;	;  x -= o3eval(x) /
