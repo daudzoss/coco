@@ -1,23 +1,34 @@
+;	if $
+;	else
+;	org	0xc000
+;	endif
+
+	if SIZE_OVER_SPEED
+	elsif SPEED_OVER_SIZE
+	else
+SPEED_OVER_SIZE	equ	1	; default
+	endif
+
 SEC	equ	$01
-CLC	equ	.NOT. SEC	
+CLC	equ	~SEC	
 
 SEV	equ	$02
-CLV	equ	.NOT. SEV
+CLV	equ	~SEV
 
 SEZ	equ	$04
-CLZ	equ	.NOT. SEZ
+CLZ	equ	~SEZ
 
 SEN	equ	$08
-CLN	equ	.NOT. SEN
+CLN	equ	~SEN
 
 SEI	equ	$10
-CLI	equ	.NOT. SEI
+CLI	equ	~SEI
 
 SEH	equ	$20
-CLH	equ	.NOT. SEH
+CLH	equ	~SEH
 
 SEF	equ	$40
-CLF	equ	.NOT. SEF
+CLF	equ	~SEF
 
 SEE	equ	$80
-CLE	equ	.NOT. SEE
+CLE	equ	~SEE

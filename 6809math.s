@@ -527,7 +527,7 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	clr	1,s	; 7	; s[0] = 0; // x^0 coeff at stack pointer + 0
 	clr	,s	; 6	; // advance past size byte to string start:
 	leax	1,x	; 5	; union {char* c, int16_t i}* x = 1 + (void*)x;
-	jsr	getpoly	;5()    ; uint16_t d = getpoly(&x, s);
+	jsr	getpoly	;5()    ; int16_t slope, d = getpoly(&x, s);
 	tstb		;	;
 	bne	1f	;	; if (!d) { // no vars encountered
 	dec	2,s	;	;
@@ -537,21 +537,23 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 1	ldx	#$0000	;	;
 	tsta		;	;
 	bpl	3f	;	; } else if (d < 0)
-2	leas	10,s	;	;
+2	leas	10?,s	;	;
 	ldd	#$8000	;	;  return 0x8000; // NaN
 	rts		;	;
-3	tfr	x,y	;	; while ((d = o3eval(x, s)) != 0) {
-	jsr	o3drv1x	;	;
-	std	8,s	;	;  int16_t derivative = o3drv1x(x);
+	ldy	#$03	;	; for (int16_t y = 3; y && d=o3eval(x, s); y--)
+3	stx	10,s	;	;  // X temporarily held as s[5]
 	jsr	o3eval	;	;
-	cmpd	#$0000	;	; 
-	beq	done	;	;
-	sty	,--s	;	; // current x
- 	std	,--s	;	; // current f(x)
-	
+	ldx	10,s	;	;
+	cmpd	#$0000	;	;
+	beq	4f	;	;
+	std	8,s	;	;  // o3eval() temporarily held as s[4]
+	jsr	o3drv1x	;	;
 	tfr	d,x	;	;
-	ldd	,s++	;	;
+	ldd	8,s	;	;
 	jsr	x16divd	;	;
-	subd	,s++	;	;
-	tfr	d,x	;	;
-	bra	3b	;	;  x -= o3eval(x) /
+	subd	10,s	;	;
+	tfr	d,x	;	;  x -= d / o3drv1x(x);// Newton-Raphson formula
+	leay	-1,y	;	;  // FIXME: double-check y isn't used in funcs!
+	bne	3b	;	;
+4	leas	12,s	;	; return x;
+	rts		;	;}

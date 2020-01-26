@@ -17,9 +17,6 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
 	stb	,x	; 4	; str->n += b; // less than or equal to original
 	rts		;5(6169);} // eatspc()
 
-	bita	#$fe	; 	;
-	beq	notstring
-	
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
 getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	ble	5f	;	; while (x <= (char*)(s[5])) { // not at end yet
