@@ -511,7 +511,7 @@ o3drv1x	ldd	#$0000	;	;int16_t o3drv1x(int16_t x, int16_t s[4]) {
 
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
-o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
+o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	stx	,--s	; 9	;{
 	clra		; 2	; uint16_t s[5]; // stack args to/from getpoly()
 	ldb	[,s]	;	; eatspc(x); // spaces compressed out of string
@@ -534,13 +534,12 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	dec	3,s	;	;  s[1] = -1; // calculator mode
 	ldx	,s	;	;  x.i = s[0]; // initial guess x will be exact
 	bra	3f	;	;
-1	ldx	#$0000	;	;
-	tsta		;	;
+1	tsta		;	;
 	bpl	3f	;	; } else if (d < 0)
-2	leas	10?,s	;	;
-	ldd	#$8000	;	;  return 0x8000; // NaN
-	rts		;	;
-	ldy	#$03	;	; for (int16_t y = 3; y && d=o3eval(x, s); y--)
+2	ldd	#$8000	;	;  return 0x8000; // NaN
+	bra	4f	;	;
+	ldx	#$0000	;	; x = 0; // initial guess
+	ldy	#$0003	;	; for (int16_t y = 3; y && d=o3eval(x, s); y--)
 3	stx	10,s	;	;  // X temporarily held as s[5]
 	jsr	o3eval	;	;
 	ldx	10,s	;	;
@@ -555,5 +554,5 @@ o3solve	jsr	eatspc	;8(6433);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	tfr	d,x	;	;  x -= d / o3drv1x(x);// Newton-Raphson formula
 	leay	-1,y	;	;  // FIXME: double-check y isn't used in funcs!
 	bne	3b	;	;
-4	leas	12,s	;	; return x;
+4	leas	12,s	;	; return d = x;
 	rts		;	;}
