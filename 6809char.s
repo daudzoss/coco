@@ -1,5 +1,5 @@
 ;;; compress ' ' out of a length-prefixed string in situ, update new length byte
-eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n; char* c;}* str){
+eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n;char c[];}* str){
 	ldb	,x+	; 6	;
 	incb		; 2	; uint8_t b = str->n + 1;
 	tfr	x,y	; 6	; char* y, a;
