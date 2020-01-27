@@ -165,11 +165,11 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 
 ;;; divide a 16-bit signed quantity in X into a 16-bit signed quantity in D
 x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
-	stx	,s	;	; int16_t s[2]; // to detect crossing 0
+	stx	,s	;	; int16_t s[2]; // to detect crossing past zero
 	beq	6f	;	; if ((s[0] = x) == 0)
-	std	2,s	;	;  return 0x0000; // divisor 0, return NaN 
+	std	2,s	;	;  return 0x8000; // divisor 0, return NaN 
 	beq 	4f	;	; if ((s[1] = d) == 0)
-	ldx	#$0000	;	;  return 0;
+	ldx	#$0000	;	;  return 0; // quotient also 0, without calc'n
 	eora	,s	;	;       // maintain sign // remember signs' xor
 	sta	3,s	;	; s[1] = (0xff00 & s[1]) | ((d^x) >> 8);// in b7
 	bpl	0f	;	; if (s[1] & 0x0080 /* d^x<0 */) // quotient < 0
