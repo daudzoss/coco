@@ -1,6 +1,6 @@
 ;;; compress ' ' out of a length-prefixed string in situ, update new length byte
-eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n;char c[];}* str){
-	ldb	,x+	; 6	;
+eatspc	stx	,--s	; 9	;uint8_t eatspc(struct {uint8_t n;
+	ldb	,x+	; 6	;                       char c[];}* str){
 	incb		; 2	; uint8_t b = str->n + 1;
 	tfr	x,y	; 6	; char* y, a;
 	bra	2f	; 3	;
@@ -13,12 +13,10 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n;char c[];}* str){
 	bne	1b	; 3	;   *y++ = a;
 3	tfr	y,d	; 6	;
 	subd	,s	; 6	; // 0 <= x-y < 256 by definition
-	lda	#$ff	; 2	;
-	comb		; 2	;
-	addd	,s	; 6	; b = x - y; // (negative) delta in string size
-	ldx	,s++	; 8	;
-	stb	,x	; 4	; str->n -= b; // less than or equal to original
-	rts		;5(6177);} // eatspc()
+	comb		; 2	; b = -((uint16_t)str-y) - 1; // new string size
+	ldx	,s++	; 8	;                             // is y - (str+1),
+	stb	,x	; 4	; return str->n = b; // b <= length of original
+	rts		;5(6169);} // eatspc()
 
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
 getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
