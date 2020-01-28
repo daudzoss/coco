@@ -58,29 +58,6 @@ d16ngtv	jsr	d0to32k	; 8(402); uint16_t x, d = y; // digit count y <= 5
 	exg	x,d	; 8	; return d, x = -d0to32k(y, s);
 	rts		; 5(444);} // d16ngtv()
 
-;;; look ahead to next character in the array, plus one more if it's a +/- sign
-peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
-	cmpb	#'-'	; 2	; char b = *(*x);
-	bne	2f	; 3	;
-	tsta		; 2	; if (b == '-' || b == '+') {
-	bne	4f	; 3	;  if (*a == '\0') { // first character found
-1	lda	,x+	; 4	;   *a = b; // gets stored in *a to remember '-'
-	ldb	,x	; 2	;   b = ++(*x); // then advance *x pointer once
-	cmpb	#'0'	; 2	;
-	blo	3f	; 3	;
-	cmpb	#'9'	; 2	;
-	bhi	3f	; 3	;   
-	rts		; 2	;
-2	cmpb	#'+'	; 2	;   // but if the next character after a sign
-	bne	4f	; 3	;   // isn't a digit or letter i.e. a variable
-	tsta		; 2	;   // with coeff 1, there is an error condition
-	beq	1b	; 3	;   if (b < '0' || b > '9')
-	bne	4f	; 3	;    b = (b & 0xc0) ? /*implicit*/ 1 : 0/*err*/;
-3	andb	#$c0	; 2	;  }
-	beq	4f	; 3	; }
-	ldb	#$01	; 2	; return b;
-4	rts		; 5 (40);} // peekdig()
-
 ;;; convert a signed ASCII decimal integer -127..127 at X to binary in Y
 get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
