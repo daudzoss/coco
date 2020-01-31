@@ -1,0 +1,25 @@
+
+ x2-7x+12@0
+^
+^
+11111111111
+00000000000
+0123456789a
+^
+^
+10-length
+
+o3solve(x = 0x0100):
+	  s[] = {0, /*1*/ 0, /*2*/ 0, /*3*/ 0, /*4*/ ?, /*5*/ ?, 0x0100}
+	  b = 10
+	  s[5] = d = 0x10a /*last char to process*/ == 0x0100+0x000a //528
+	  x += 1 == 0x0101 //529
+	  
+getpoly(x = 0x0101, s /* will use 2/5 slots for digits, fill in a0-a3*/):
+	  x <= s[5] == 0x010a //45
+	  
+get5bcd(x = 0x0101, y /* will hold the value, number of digits in b */):
+	  y = 0 //114
+	  a = 0 //115
+
+peekdig(x = 0x0101, a /* will hold sign or 1st dig */):
