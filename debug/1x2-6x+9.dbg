@@ -27,11 +27,17 @@ getpoly(x = 0x0101, s /* will use 2/5 slots for digits, fill in a0-a3 */):
 		y -= 5 is -5 //122
 		y += 6 is 1 //123
 		b &= 0x0f is 1 //124
-		s[-1] = b is 1 //125
+		s[-1] = b is 1 //126
 		peekdig(x = 0x0102, a is 0):
 			b = 'x'
 		b is 'x' //131
 		a is 0 //135
-		d0to32k(y is 1, s):
+		d0to32k(y is 1, s): //FIXME d seems uninitialized to y!!!!
+			// return PC is at s[-3],s[-2]
+			s[-5] = x is preserved //32
+			x = 0 //33
+			s[-7] = y is 1 //34
+			d = &s[0] //38
+			x = 'x' but ideally, would be 1 (from y) //39
+			b = s[-2] //40 // FIXME seems like it should be s[-1]
 			
-		
