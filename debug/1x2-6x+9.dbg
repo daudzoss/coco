@@ -32,12 +32,20 @@ getpoly(x = 0x0101, s /* will use 2/5 slots for digits, fill in a0-a3 */):
 			b = 'x'
 		b is 'x' //131
 		a is 0 //135
-		d0to32k(y is 1, s): //FIXME d seems uninitialized to y!!!!
+		d0to32k(y is 1, s):
 			// return PC is at s[-3],s[-2]
 			s[-5] = x is preserved //32
 			x = 0 //33
 			s[-7] = y is 1 //34
-			d = &s[0] //38
-			x = 'x' but ideally, would be 1 (from y) //39
-			b = s[-2] //40 // FIXME seems like it should be s[-1]
-			
+			x = 0 //36
+			d = &s[-2] //38
+			b = d[y] is 1 //40
+			x += b is 1 //41
+			y -= 1 is 0 //42
+			y = x is 1 //43
+			d = s[-7] is 1 /* element to pop */ //45
+			x = s[-5] is preserved //46
+		s popped back to &s[0] //135
+
+	b is 1 /* characters converted */ // 48
+	

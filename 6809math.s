@@ -33,7 +33,7 @@ d0to32k	stx	,--s	; 9	;uint16_t d0to32k(uint3_t y,
 	ldx	#$0000	; 3	;                 const uint8_t* s) {
 	sty	,--s	; 9	; uint16_t x, d = y; // digit count y <= 5
 	beq	3f	; 3	;
-	bne	2f	; 3	;
+	ldd#$0000:bne 2f; 3;3	;
 1	jsr	x10ind	; 8 (46); for (x = 0x0000; y; y--) {
 2	leax	5,s	; 5 	;  // d is now x*10, x is now the digit pointer
 	exg	d,x	; 8	;  x *= 10; // d is now the digit pointer

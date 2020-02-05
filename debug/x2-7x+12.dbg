@@ -32,7 +32,7 @@ getpoly(x = 0x0101, s /* will use 2/5 slots for digits, fill in a0-a3 */):
 
 
 <--- will need to have 1x2 instead of x2 for now, no implicit 1 yet (will be 0!)
-
+//fixme: need to update get5bcd() or even better check for alpha before calling
 
 
 
