@@ -29,11 +29,11 @@ x10ind	stx	,--s	; 5	;int16_t x10inD(int16_t x) {
 	rts		; 5 (38);} // x10inD()
 
 ;;; copy Y to D, convert a Y-digit unsigned BCD 0..32767 to binary unsigned in Y
-d0to32k	stx	,--s	; 9	;uint16_t d0to32k(uint3_t y,
+d0to32k	macro
+	stx	,--s	; 9	;inline uint16_t d0to32k(uint3_t y,
 	ldx	#$0000	; 3	;                 const uint8_t* s) {
 	sty	,--s	; 9	; uint16_t x, d = y; // digit count y <= 5
-	beq	3f	; 3	;
-	ldd#$0000:bra 2f; 3;3	;
+	beq 3f:ldd#$0000:bra 2f; 3;3;3	;
 1	jsr	x10ind	; 8 (46); for (x = 0x0000; y; y--) {
 2	leax	5,s	; 5 	;  // d is now x*10, x is now the digit pointer
 	exg	d,x	; 8	;  x *= 10; // d is now the digit pointer
@@ -43,15 +43,15 @@ d0to32k	stx	,--s	; 9	;uint16_t d0to32k(uint3_t y,
 	bne	1b	; 3	; // caller can pop d args with: leas d,s
 3	tfr	x,y	; 6	;
 	ldd	,s++	; 8	; return d, y = x;
-	ldx	,s++	; 8	;
-	rts		; 5(388);} // d0to32k()
+	ldx	,s++	;?8(388);} // d0to32k()
+	endm
 
 ;;; copy Y to D,convert a Y-digit signed BCD -32767..32767 to binary signed in Y
 d16sgnd	bmi	d16ngtv	; 3	;int16_t d16sgnd(uint1_t n,
-	jsr	d0to32k	; 8(402);                uint3_t y,
+d16pstv	d0to32k		; 8(402);                uint3_t y,
 	rts		; 2	;                uint8_t* s) {
-d16ngtv	jsr	d0to32k	; 8(402); uint16_t x, d = y; // digit count y <= 5
-	exg	x,d	; 8	; return d, x = n ? d16ngtv(y,s) : d0to32k(y,s);
+d16ngtv	d0to32k		; 8(402); uint16_t x, d = y; // digit count y <= 5
+	exg	x,d	; 8	; return d, x = n ? d16ngtv(y,s) : d16pstv(y,s);
 	coma		; 2	;} // d16sgnd()
 	comb		; 2	;int16_t d16ngtv(uint3_t y, uint8_t* s) {
 	addd	#$0001	; 4	; uint16_t x, d = y; // digit count y <= 5
@@ -133,9 +133,9 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	tfr	y,d	; 6	;
 	bra	6f	; 3	; if (b) {
 4	cmpa	#'-'	; 2	;  if (a != '-')
-	beq	5f	; 3	;   b = y, y = d0to32k(y, s); // x is preserved
-	jsr	d0to32k	; 8(402);  else
-	bra	6f	; 3	;   b = y, y = d16ngtv(y, s); // =-d0to32k(y,s);
+	beq	5f	; 3	;   b = y, y = d16pstv(y, s); // x is preserved
+	jsr	d16pstv	; 8(402);  else
+	bra	6f	; 3	;   b = y, y = d16ngtv(y, s); // =-d16pstv(y,s);
 5	jsr	d16ngtv	; 8(439); }
 6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(945);} // get5bcd()
