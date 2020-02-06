@@ -56,7 +56,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	bra	5f	;	;    break; // initial guess (or junk) is in y
 1	deca		;	;
 	anda	#$c0	;	;   } else if (a >= 'A') { // letter, maybe exp
-	bne	2f	;	;
+	beq	2f	;	;
 	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
 	cmpb	#'0'	;	;
 	blo	4f	;	;    if (b < '0')
