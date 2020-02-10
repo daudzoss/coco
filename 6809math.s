@@ -33,7 +33,9 @@ d0to32k	macro
 	stx	,--s	; 9	;inline uint16_t d0to32k(uint3_t y,
 	ldx	#$0000	; 3	;                 const uint8_t* s) {
 	sty	,--s	; 9	; uint16_t x, d = y; // digit count y <= 5
-	beq 3f:ldd#$0000:bra 2f; 3;3;3	;
+	beq	3f	; 3	;
+	ldd	#$0000	; 3	;
+	bra	2f	; 3	;
 1	jsr	x10ind	; 8 (46); for (x = 0x0000; y; y--) {
 2	leax	5,s	; 5 	;  // d is now x*10, x is now the digit pointer
 	exg	d,x	; 8	;  x *= 10; // d is now the digit pointer
@@ -383,6 +385,52 @@ x3sgnd6	 tfr	x,d	; 6	;                                 };
 	 rts		; 5(37)	;} // x3sgnd6()
 	endif
 
+;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
+getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
+	bhi	5f	;	; while (x <= (char*)(s[5])) { // not at end yet
+	jsr	get5bcd	; 	;  int16_t y, d = get5bcd(&x, &y); // past digit
+	tstb		;	;
+	beq	4f	;	;  if (d) { // successfully converted into Y
+	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
+	cmpa	#','	;	;
+	bne	1f	;	;   if (a == ',') {// comma before initial guess
+	jsr	get5bcd	;	;    uint8_t b = get5bcd(&x, &y);
+	tstb		;	;    if (b == 0)
+	beq	4f	;	;     return -1;// no value provided after comma
+	bra	5f	;	;    break; // initial guess (or junk) is in y
+1	deca		;	;
+	anda	#$c0	;	;   } else if (a >= 'A') { // letter, maybe exp
+	beq	2f	;	;
+	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
+	cmpb	#'0'	;	;
+	blo	4f	;	;    if (b < '0')
+	cmpb	#'4'	;	;     return -1;// invalid character encountered
+	blo	3f	;	;    else if (b >= '4')
+	ldb	#'1'	;	;     b = '1'; // implied exponent of 1
+2	leax	-1,x	;	;    else
+3	clra		;	;     ++x; // ate the exponent, so undo our --x:
+	aslb		;	;   } // we now have coefficient in y, exp in b
+	andb	#$06	;	;   --x; // back up to get potential next term
+	addb	#$02	;	;
+	sts	,--s	;	;
+	addd	,s++	;	;
+	exg	d,y	; 8	;
+	addd	,y	;	;
+	std	,y	;	;   s[b - '0'] += y;
+	bra	getpoly	;	;   continue;
+4	lda	#$ff	;	;
+	ldb	#$ff	;	;  } else
+	rts		;	;   return -1;// conversion failed
+5	tfr	y,x	; 6	;
+	clra		;	;
+	ldb	4,s	;	; }
+	orb	5,s	;	; 
+	orb	6,s	;	; x = y; // initial guess (or junk) is in x
+	orb	7,s	;	; // (doesn't matter, used only for convergence)
+	orb	8,s	;	;
+	orb	9,s	;	; return s[1] | s[2] | s[3];// 0 if no var found
+	rts		;	;} // getpoly()
+
 ifisNaN	macro
 	aslb		;	;inline uint8_t ifisNaN(int16_t d, void(*f)()) {
 	bne	2f	;	;
@@ -533,3 +581,4 @@ o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	bne	3b	;	;
 4	leas	12,s	;	; return d = x;
 	rts		;	;}
+
