@@ -195,67 +195,6 @@ x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 	rts		;	;} // x16divd()
 ;;; now try multiplying using x8mul16()
 
-;;; 
-;;; cf.
-				;inline uint8_t DIVIDE(uint16_t* dividend,
-				;                      uint8_t divisor,
-				;                      uint8_t* quotient,
-				;                      uint8_t* quo_hi) {
-				; if (divisor == 0)
-				;  return 0; // Z flag will be clear if div by 0
-divnot0
-				; else if (*dividend == 0)
-				;
-				;
-				;
-				;
-				;
-				;
-				;  return 0; // Z flag will be set if actually 0
-divsub1
-				; else {
-				;  // subtract one from dividend to ease compare
-				;
-				;
-divsubc
-				;
-divloop
-				;  uint16_t result = (*dividend) / divisor;
-				;
-				;
-				;  if (result > 0x00ff) {
-				;   if (quo_hi) {
-				;
-				;    *quotient = result & 0x00ff;
-				;    *quo_hi = result >> 8;
-	
-				;   } else
-				;    *quotient = 0xff; // clamp to 8 bits
-				;  }
-divchek
-				;  // works with non-static divisor, not re-read
-				;  if (*quotient)
-				;   return *quotient; // Z flag will be clear
-				;  else { // count # fewer leading 0s in divisor
-				;   uint8_t w = 0;
-				;
-				;   *dividend ^= divisor;
-				;   while (*dividend & 0x80 == 0)
-divbias
-				;    *dividend <<= 1;
-				;   while (*dividend & 0x80) {
-				;    *dividend <<= 1;
-divroll
-				;    w = 0x80 | (w >> 1);
-				;   }
-				;   return w; // Z flag will be set
-				;  }
-				; }
-				;} // DIVIDE()
-divdone
-;;; 
-;;; 
-	
 ;;; multiply an 8-bit signed number in X by a 16-bit signed number in D
 x8mul16	stx	,--s	;	;int16_t x8mul16(int8_t x, uint16_t d) {
 	std	,--s	;	; // s+2: sign storage post-abs() s+3: copy of x
