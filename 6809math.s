@@ -115,18 +115,27 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
 get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
-1	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
-	cmpb	#'0'	; 2	;
-	blo	3f	; 3	; do {
-	cmpb	#'9'	; 2	;  b = peekdig(x, &a); // sign or 1st dig in a
-	bhi	3f	; 3	;  if (b >= '0' && b <= '9') { // verified digit
-	leax	1,x	; 5	;   (*x)++;
+0	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
+	leay	,y	;	;
+	bne	1f	;	; do {
+	bitb	#$c0	;	;  b = peekdig(x, &a); // sign or 1st dig in A
+	beq	1f	;	;
+	cmpb	#'@'	;	;
+	beq	1f	;	;
+	ldb	#$01	;	;  if (y == 0 && b >= 'A') {
+	stb	,-s	; 6	;   s[y++] = 1; // var with implicit 1 coeff leay	1,y	;	;
+	bra	4f	; 3	;   break;
+1	cmpb	#'0'	; 2	;
+	blo	3f	; 3	;
+	cmpb	#'9'	; 2	;
+	bhi	3f	; 3	;  } else if (b >= '0' && b <= '9') {
+	leax	1,x	; 5	;   (*x)++; // x points past verified digit
 	leay	-5,y	; 5	;
 	beq	2f	; 3	;   if (y != 5) // *x points to a known digit
 	leay	6,y	; 5	;
 	andb	#$0f	; 2	;
 	stb	,-s	; 6	;    s[y++] = b - '0';
-	bra	1b	; 3	;   else
+	bra	0b	; 3	;   else
 2	clrb		; 2	;    b = 0; // indicates unsuccessful conversion
 	tfr	y,d	; 6	;
 	bra	6f	; 3	;  }
