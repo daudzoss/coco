@@ -10,12 +10,12 @@
 
 o3solve(x = 0x0100):
 	s[] = {0, /*1*/ 0, /*2*/ 0, /*3*/ 0, /*4*/ ?, /*5*/ ?, 0x0100}
-	b = 10
-	s[5] = d = 0x10a /*last char to process*/ is 0x0100+0x000a //528
-	x += 1 is 0x0101 //563
+	b = 10 // 552
+	s[5] = d = 0x10a /*last char to process*/ is 0x0100+0x000a //554
+	x += 1 is 0x0101 //564
 	  
 getpoly(x = 0x0101, s /* will use 2/5 slots for digits, fill in a0-a3 */):
-	x <= s[5] is 0x010a //398
+	x <= s[5] is 0x010a //399
 	  
 	get5bcd(x = 0x0101, y /* value, number of digits in b */):
 		y = 0 //116
@@ -28,25 +28,25 @@ getpoly(x = 0x0101, s /* will use 2/5 slots for digits, fill in a0-a3 */):
 		b != '@' //122
 		b = 1 //125
 		s[-1] = b is 1 //126
-		y = 1 //127
-		a is '' != '-' //127 HERE
-
-
-
-		s += 0 is unchanged
-	b is 'x' != 0 // 49
-	a = *x++ is 'x', x is now 0x0102 // 50
-	a != ',' // 51
-
-
-<--- will need to have 1x2 instead of x2 for now, no implicit 1 yet (will be 0!)
-//fixme: need to update get5bcd() or even better check for alpha before calling
-
-
-
-
-
-		x += 1 is 0x0102 //121
-		y -= 5 is -5 // 122
-		y += 6 is 1 // 123
-		b &= 0x0f is 
+		y += 1 is 1 //127
+		a is '\0' != '-' //147
+		d16pstv(y is 1, s):
+			// return PC is at s[-3],s[-2]
+			d0to32k(y is 1, s):
+			s[-5] = x is preserved as 0x0101 //33
+			x = 0 //34
+			s[-7] = y is 1 //35
+			d = &s[-2] //40
+			b = d[y] is 1 //42
+			x += b is 1 //43
+			y -= 1 is 0 //44
+			y = x is 1 //46
+			d = s[-7] is 1 /* elements to pop */ //47
+			x = s[-5] is preserved as 0x0101 //48
+		s popped back to &s[0] //152
+	b is 1 /* characters converted */ // 402
+	a = *x++ is 'x', x is now 0x0102 // 4040
+	a != '@' //406
+	a -= 1 is 'w' //411
+	a &= 0x40 is 0x40 //412
+	b = *x++ is '2' (x is 0x103) //414
