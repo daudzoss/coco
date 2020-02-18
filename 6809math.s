@@ -123,7 +123,8 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 	cmpb	#'@'	;	;
 	beq	1f	;	;
 	ldb	#$01	;	;  if (y == 0 && b >= 'A') {
-	stb	,-s	; 6	;   s[y++] = 1; // var with implicit 1 coeff leay	1,y	;	;
+	stb	,-s	; 6	;   s[y++] = 1; // var with implicit 1 coeff
+	leay	1,y	;	;
 	bra	4f	; 3	;   break;
 1	cmpb	#'0'	; 2	;
 	blo	3f	; 3	;
