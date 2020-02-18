@@ -50,3 +50,5 @@ getpoly(x = 0x0101, s /* will use 2/5 slots for digits, fill in a0-a3 */):
 	a -= 1 is 'w' //411
 	a &= 0x40 is 0x40 //412
 	b = *x++ is '2' (x is 0x103) //414
+	'2' < '4' //418
+
