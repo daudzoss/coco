@@ -36,7 +36,7 @@ peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 	tsta		; 2	;   // with coeff 1, there is an error condition
 	beq	1b	; 3	;   if (b < '0' || b > '9')
 	bne	4f	; 3	;    b = (b & 0xc0) ? /*implicit*/ 1 : 0/*err*/;
-3	andb	#$c0	; 2	;  }
+3	andb	#$40	; 2	;  }
 	beq	4f	; 3	; }
 	ldb	#$01	; 2	; return b;
 4	rts		; 5 (40);} // peekdig()

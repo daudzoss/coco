@@ -118,7 +118,7 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 0	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
 	leay	,y	;	;
 	bne	1f	;	; do {
-	bitb	#$c0	;	;  b = peekdig(x, &a); // sign or 1st dig in A
+	bitb	#$40	;	;  b = peekdig(x, &a); // sign or 1st dig in A
 	beq	1f	;	;
 	cmpb	#'@'	;	;
 	beq	1f	;	;
@@ -308,7 +308,7 @@ x3sgnd6	 stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	 bra	3f	; 3	; } else {
 1	 neg	1,s	; 7	;  s[1] = 0x00ff & -d; // -d stored in low byte,
 	 stb	,s	; 4	;  s[1]|= d<<8;// original d stored in high byte
-	 bitb	#$60	; 2	;
+	 bitb	#$40	; 2	;
 	 beq	2f	; 3	;  if (x >= 32) // would overflow an int16_t, so
 	 ldd	#$8000	; 3	;   return d = 0x8000; // return a NaN
 	 bra	3f	; 3	;
@@ -408,7 +408,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	beq	4f	;	;     return -1;// no value provided after comma
 	bra	5f	;	;    break; // initial guess (or junk) is in y
 1	deca		;	;
-	anda	#$c0	;	;   } else if (a >= 'A') { // letter, maybe exp
+	anda	#$40	;	;   } else if (a >= 'A') { // letter, maybe exp
 	beq	2f	;	;
 	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
 	cmpb	#'0'	;	;
