@@ -487,7 +487,7 @@ o3drv1x	ldd	#$0000	;	;int16_t o3drv1x(int16_t x, int16_t s[4]) {
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	stx	,--s	; 9	;{
-	clra		; 2	; uint16_t s[5]; // stack args to/from getpoly()
+	clra		; 2	; uint16_t s[6]; // stack args to/from getpoly()
 	ldb	[,s]	;	; eatspc(x); // spaces compressed out of string
 	addd	,s	;	; // stop point for scan at stack pointer + 8:
 	std	,s	; 	; s[4] = x + x->n; // ECB string end at ptr+*ptr
@@ -507,18 +507,18 @@ o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	dec	2,s	;	;
 	dec	3,s	;	;  s[1] = -1; // calculator mode
 	ldx	,s	;	;  x.i = s[0]; // initial guess x will be exact
-	bra	3f	;	;
+	bra	4f	;	;
 1	tsta		;	;
 	bpl	3f	;	; } else if (d < 0)
 2	ldd	#$8000	;	;  return 0x8000; // NaN
-	bra	4f	;	;
-	ldx	#$0000	;	; x = 0; // initial guess
+	bra	5f	;	;
+3	ldx	#$0000	;	; x = 0; // initial guess
 	ldy	#$0003	;	; for (int16_t y = 3; y && d=o3eval(x, s); y--)
-3	stx	10,s	;	;  // X temporarily held as s[5]
+4	stx	10,s	;	;  // X temporarily held as s[5]
 	jsr	o3eval	;	;
 	ldx	10,s	;	;
 	cmpd	#$0000	;	;
-	beq	4f	;	;
+	beq	5f	;	;
 	std	8,s	;	;  // o3eval() temporarily held as s[4]
 	jsr	o3drv1x	;	;
 	tfr	d,x	;	;
@@ -527,7 +527,7 @@ o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	subd	10,s	;	;
 	tfr	d,x	;	;  x -= d / o3drv1x(x);// Newton-Raphson formula
 	leay	-1,y	;	;  // FIXME: double-check y isn't used in funcs!
-	bne	3b	;	;
-4	leas	12,s	;	; return d = x;
+	bne	4b	;	;
+5	leas	14,s	;	; return d = x;
 	rts		;	;}
 
