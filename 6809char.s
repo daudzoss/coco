@@ -1,5 +1,5 @@
 ;;; compress ' ' out of a length-prefixed string in situ, update new length byte
-eatspc	stx	,--s	; 9	;uint8_t eatspc(struct {uint8_t n;// length byte
+eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n;// length byte
 	ldb	,x+	; 6	;                       char c[];}* str){
 	incb		; 2	; uint8_t b = str->n + 1;
 	tfr	x,y	; 6	; char* y, a;
@@ -9,13 +9,14 @@ eatspc	stx	,--s	; 9	;uint8_t eatspc(struct {uint8_t n;// length byte
 	beq	3f	; 3	;
 	lda	,x+	; 6	;
 	cmpa	#' '	; 2	;
-	beq	2b	; 3	;  if ((a = *x) != ' ')
-	bne	1b	; 3	;   *y++ = a;
+	bne	1b	; 3	;  if ((a = *x) != ' ')
+	beq	2b	; 3	;   *y++ = a;
 3	tfr	y,d	; 6	;
 	subd	,s	; 6	; // 0 <= x-y < 256 by definition
-	comb		; 2	; b = -((uint16_t)str-y) - 1; // new string size
+	addb	#0xff	; 2	; b = y - (1 + (uint16_t)str);// new string size
 	ldx	,s++	; 8	;                             // is y - (str+1),
-	stb	,x	; 4	; return str->n = b; // b <= length of original
+	stb	,x	; 4	; str->n = b; // b <= length of original
+	tfr	x,d	; 6	; return d = x; // FIXME: only for ECB testing
 	rts		;5(6169);} // eatspc()
 
 ;;; look ahead to next character in the array, plus one more if it's a +/- sign
