@@ -19,7 +19,8 @@ d8ngtv	jsr	d0to199	; 8 (33); return n ? d8ngtv(c, d, x) : d0to199(c, d, x);
 
 ;;; multiply X -3276..3276 by 10 into D, e.g. to allow 5-digit BCD construction
 x10ind	stx	,--s	; 5	;int16_t x10inD(int16_t x) {
-	asl	,s	; 6	;
+	asl	1,s	; ?	;
+	rol	,s	; ?	;
 	ldd	,s	; 5	; uint16_t d = x*2;
 	aslb		; 2	;
 	rola		; 2	;
