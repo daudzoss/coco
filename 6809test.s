@@ -34,7 +34,7 @@ td8sgnd	orcc	#SEC		;1
 	swi			;P
  endif
 	
- if 1
+ if 0
 tx10ind	ldx	#$000a		;a
 	jsr	x10ind		;*
 	ldy	#$9a55		;a
@@ -61,6 +61,13 @@ td16pst	lda	#$01		;
 	sta	,-s		;
 	lda	#$04		;
 	sta	,-s		;
+	ldy	#$0004		;
+	jsr	d16pstv		;
+ elsif 1
+td16pst	ldd	#$0403		;
+	std	,--s		;
+	ldd	#$0201		;
+	std	,--s		;
 	ldy	#$0004		;
 	jsr	d16pstv		;
  endif
