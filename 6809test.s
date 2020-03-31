@@ -53,22 +53,26 @@ tx10ind	ldx	#$000a		;a
  endif
 
  if 1
-td16pst	lda	#$04		;
-	sta	,-s		;
-	lda	#$03		;
+td16pst	lda	#$01		;
 	sta	,-s		;
 	lda	#$02		;
 	sta	,-s		;
-	lda	#$01		;
+	lda	#$03		;
+	sta	,-s		;
+	lda	#$04		;
 	sta	,-s		;
 	ldy	#$0004		;
 	jsr	d16pstv		;
- elsif 1
+	leas	d,s
+ elsif 0
 td16pst	ldd	#$0304		;
 	std	,--s		;
 	ldd	#$0102		;
 	std	,--s		;
 	ldy	#$0004		;
 	jsr	d16pstv		;
+	leas	d,s
+	
+
  endif
 	swi
