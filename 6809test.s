@@ -51,5 +51,17 @@ tx10ind	ldx	#$000a		;a
 1	ldy	#$9a55		;a
 	swi
  endif
-	
+
+ if 0
+td16pst	lda	#$01		;
+	sta	,-s		;
+	lda	#$02		;
+	sta	,-s		;
+	lda	#$03		;
+	sta	,-s		;
+	lda	#$04		;
+	sta	,-s		;
+	ldy	#$0004		;
+	jsr	d16pstv		;
+ endif
 	swi
