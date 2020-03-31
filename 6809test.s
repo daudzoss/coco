@@ -52,21 +52,21 @@ tx10ind	ldx	#$000a		;a
 	swi
  endif
 
- if 0
-td16pst	lda	#$01		;
-	sta	,-s		;
-	lda	#$02		;
+ if 1
+td16pst	lda	#$04		;
 	sta	,-s		;
 	lda	#$03		;
 	sta	,-s		;
-	lda	#$04		;
+	lda	#$02		;
+	sta	,-s		;
+	lda	#$01		;
 	sta	,-s		;
 	ldy	#$0004		;
 	jsr	d16pstv		;
  elsif 1
-td16pst	ldd	#$0403		;
+td16pst	ldd	#$0304		;
 	std	,--s		;
-	ldd	#$0201		;
+	ldd	#$0102		;
 	std	,--s		;
 	ldy	#$0004		;
 	jsr	d16pstv		;
