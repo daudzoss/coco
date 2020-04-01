@@ -61,7 +61,7 @@ d16ngtv	d0to32k		; 8(402); uint16_t x, d = y; // digit count y <= 5
 	exg	x,d	; 8	; return d, x = -d0to32k(y, s);
 	rts		; 5(444);} // d16ngtv()
 
-;;; convert a signed ASCII decimal integer -127..127 at X to binary in Y
+;;; convert a signed ASCII decimal integer -127..127 at X to binary in D
 get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
 1	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[4];
@@ -77,6 +77,7 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	stb	,-s	; 6	;    s[y++] = b - '0';
 	bra	1b	; 3	;   else
 2	clrb		; 2	;    b = 0; // indicates unsuccessful conversion
+	leay	3,y	; ?	;
 	bra	9f	; 3	;  }
 3	tstb		; 2	; } while (b);
 	beq	9f	; 3	; if (b) {
@@ -100,17 +101,19 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	clrb		; 2	;   b = 0;                // 10's, 100's are 0
 6	stx	,--s	; 5	;  }
 	tfr	y,x	; 6	;
-	cmpa	#'-'	; 2	;  uint16_t x = y; // local preserves pointer X
+	cmpa	#'-'	; 2	;
 	beq	7f	; 3	;  int16_t d;
 	lsrb		; 2	;               
 	jsr	d0to199	; 8 (33);  if (a != '-')
 	bra	8f	; 3	;   d = d0to199(b & 0x01, b >> 1, x); //100,10,1
 7	lsrb		; 2	;  else
 	jsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  //100,10,1
-8	tfr	y,d	; 6	;  d = y; // d total digits converted
-	tfr	x,y	; 6	;  y = x; // y result of conversion
-	ldx	,s++	; 8	; }
-9	leas	d,s	; 8	; return d & 0x03;
+8	tfr	x,d	; 6	;
+	ldx	,s++	; 8	;
+	rts		; 5	;  return d;
+9	tfr	y,d	; ?	; } else
+	leas	d,s	; 8	;
+	ldd	#$8000	; ?     ;  return d = NaN;
 	rts		; 5(343);} // get3bcd()
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
