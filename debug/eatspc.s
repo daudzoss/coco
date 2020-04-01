@@ -1,6 +1,5 @@
 ;;; eatspc.s
  if 0
-	bra	skpinit
 	ldx	#hellow		;
 	jsr	eatspc		;
 	ldb	hellow		;
@@ -22,5 +21,4 @@ hellow	fcb	$0c
 	fcc	"Hello world!"
 patholo	fcb	$0c
 	fcc	"            "
-skpinit
  endif
