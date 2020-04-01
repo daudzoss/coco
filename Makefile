@@ -4,7 +4,7 @@ mathfunc.bin : mathfunc.s 6809defs.s 6809test.s 6809char.s 6809math.s
 6809test.s : 
 	touch 6809test.s
 
-nodebug : 
+clean :
 	echo -n > 6809test.s
 
 debug : 6809test.s debug/*.s
