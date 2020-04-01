@@ -1,5 +1,6 @@
+;;; d16pstv.s
  if 0
-td16pst	lda	#$01		;
+	lda	#$01		;
 	sta	,-s		;
 	lda	#$02		;
 	sta	,-s		;
@@ -12,7 +13,7 @@ td16pst	lda	#$01		;
 	leas	d,s		;
 	swi			;
  elsif 0
-td16pst	ldd	#$0304		;
+	ldd	#$0304		;
 	std	,--s		;
 	ldd	#$0102		;
 	std	,--s		;

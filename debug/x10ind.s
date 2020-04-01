@@ -1,3 +1,4 @@
+;;; x10ind.s
  if 0
 	ldx	#$000a		;a
 	jsr	x10ind		;*
