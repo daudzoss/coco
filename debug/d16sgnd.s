@@ -1,5 +1,5 @@
 ;;; d16sgnd.s
- if 1
+ if 0
 	lda	#$01		;1
 	sta	,-s		;
 	lda	#$02		;2
@@ -13,22 +13,24 @@
 	jsr	d16sgnd		;
 	leas	d,s		;
 	
+	tfr	y,d		;
 	addd	#1234		;1
 	beq	1f		;2
 	ldy	#$fa17		;3
 	swi			;4
 1	ldy	#$9a55		;=
 	swi			;0
- elsif 1
-	ldd	#$0304		;
+ elsif 0
+	ldd	#$0201		;
 	std	,--s		;
-	ldd	#$0102		;
+	ldd	#$0403		;
 	std	,--s		;
 	ldy	#$0004		;
 	orcc	#SEN		;-
-	jsr	d16pstv		;
+	jsr	d16sgnd		;
 	leas	d,s		;
 	
+	tfr	y,d		;
 	addd	#1234		;
 	beq	1f		;
 	ldy	#$fa17		;

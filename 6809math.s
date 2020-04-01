@@ -54,11 +54,11 @@ d16sgnd	bmi	d16ngtv	; 3	;int16_t d16sgnd(uint1_t n,
 d16pstv	d0to32k		; 8(402);                uint3_t y,
 	rts		; 2	;                uint8_t* s) {
 d16ngtv	d0to32k		; 8(402); uint16_t x, d = y; // digit count y <= 5
-	exg	x,d	; 8	; return d, x = n ? d16ngtv(y,s) : d16pstv(y,s);
+	exg	y,d	; 8	; return d, x = n ? d16ngtv(y,s) : d16pstv(y,s);
 	coma		; 2	;} // d16sgnd()
 	comb		; 2	;int16_t d16ngtv(uint3_t y, uint8_t* s) {
 	addd	#$0001	; 4	; uint16_t x, d = y; // digit count y <= 5
-	exg	x,d	; 8	; return d, x = -d0to32k(y, s);
+	exg	y,d	; 8	; return d, y = -d0to32k(y, s);
 	rts		; 5(444);} // d16ngtv()
 
 ;;; convert a signed ASCII decimal integer -127..127 at X to binary in Y
