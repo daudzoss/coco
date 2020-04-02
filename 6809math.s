@@ -8,7 +8,7 @@ d0to199	lda	#$0a	; 2	;uint16_t d0to199(uint1_t c,  // 100's
 
 ;;; convert a 3-digit signed BCD -128..127 to binary unsigned in X, signed in D
 d8sgnd	bmi	d8ngtv	; 3	;int16_t d8sgnd(uint1_t n, // sign
-	jsr	d0to199	; 8 (33);               uint1_t c,  // 100's
+d8pstv	jsr	d0to199	; 8 (33);               uint1_t c,  // 100's
 	tfr	x,d	; 6	;               uint16_t d,  // 10's
 	rts		; 2	;               uint16_t x) { // 1's
 d8ngtv	jsr	d0to199	; 8 (33); return n ? d8ngtv(c, d, x) : d0to199(c, d, x);
@@ -104,12 +104,11 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	cmpa	#'-'	; 2	;
 	beq	7f	; 3	;  int16_t d;
 	lsrb		; 2	;               
-	jsr	d0to199	; 8 (33);  if (a != '-')
-	bra	8f	; 3	;   d = d0to199(b & 0x01, b >> 1, x); //100,10,1
+	jsr	d8pstv	; 8 (33);  if (a != '-')
+	bra	8f	; 3	;   d = d8pstv(b & 0x01, b >> 1, x); //100,10,1
 7	lsrb		; 2	;  else
 	jsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  //100,10,1
-8	tfr	x,d	; 6	;
-	ldx	,s++	; 8	;
+8	ldx	,s++	; 8	;
 	rts		; 5	;  return d;
 9	tfr	y,d	; ?	; } else
 	leas	d,s	; 8	;

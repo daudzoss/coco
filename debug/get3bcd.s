@@ -9,7 +9,7 @@
 	
 1	ldx	#lit_127	;
 	jsr	get3bcd		;
-	cmpd	#$0081		;
+	cmpd	#$ff81		;
 	beq	2f		;
 	ldy	#$fa17		;
 	swi			;
@@ -26,6 +26,6 @@
 	
 lit_127 fcc	"-"
 lit127	fcc	"127"
-	fcb	0
+	fcb	$0d
 toolong	fcc	"1234"
  endif
