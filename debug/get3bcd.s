@@ -28,4 +28,5 @@ lit_127 fcc	"-"
 lit127	fcc	"127"
 	fcb	$0d
 toolong	fcc	"1234"
+;	fcb	$0d		;<--FIXME: causes program not to load!!!
  endif
