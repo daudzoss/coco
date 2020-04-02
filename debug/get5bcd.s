@@ -1,14 +1,14 @@
 ;;; get5bcd.s
  if 1
 	ldx	#lit32k
-	jsr	get3bcd
+	jsr	get5bcd
 	cmpy	#$7fff
 	beq	1f
 	ldy	#$fa17
 	swi
 	
 1	ldx	#lit_32k
-	jsr	get3bcd
+	jsr	get5bcd
 	cmpy	#$8001
 	beq	2f
 	ldy	#$fa17

@@ -1,5 +1,5 @@
 ;;; get3bcd.s
- if 1
+ if 0
 	ldx	#lit127		;
 	jsr	get3bcd		;
 	cmpd	#$007f		;
