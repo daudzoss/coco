@@ -18,5 +18,5 @@
 	
 lit_32k fcc	"-"
 lit32k	fcc	"32767"
-	fcb	0
+	fcb	$0d
  endif
