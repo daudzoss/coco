@@ -1,5 +1,5 @@
 ;;; get5bcd.s
- if 1
+ if 0
 	ldx	#lit32k
 	jsr	get5bcd
 	cmpy	#$7fff
