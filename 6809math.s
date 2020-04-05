@@ -182,7 +182,7 @@ x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 2	tst	2,s	;	;   if (s[1] < 0)
 	bpl	1b	;	;    break; // crossed 0 (negative to positive)
 3	exg	x,d	;	; int16_t temp = x, /*R*/ x = d, d /*Q*/ = temp;
-4	cmpx	,s	;	;
+4	cmpx	,s	;	;// <--- FIXME: this didn't catch 32767/-8191==4
 	bne	5f	;	;
 	ldx	#$0000	;	;
 5	cmpx	#$0000	;	;

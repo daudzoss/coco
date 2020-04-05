@@ -1,5 +1,5 @@
 ;;; x8mul16
- if 1
+ if 0
 	ldx	#$0017
 	ldd	#$0242
 	jsr	x8mul16
