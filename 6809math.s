@@ -219,7 +219,7 @@ x8mul16	stx	,--s	;	;int16_t x8mul16(int8_t x, uint16_t d) {
 2	mul		;	; product = x * ((d & 0xff00) >> 8);
 	tsta		;	;
 	bne	3f	;	; if (product <= 255) {
-	std	,s	;	;
+	stb	,s	;	;
 	ldb	1,s	;	;
 	clr	1,s	;	;  product <<= 8; // = 256ax
 	lda	3,s	;	;
