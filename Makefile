@@ -12,3 +12,7 @@ debug : 6809test.s debug/*.s
 
 emu : mathfunc.bin
 	xroar -machine coco2bus -cart edtasm+ mathfunc.bin
+
+pdf : mathfunc.lst
+	enscript -r mathfunc.lst -o mathfunc.ps && ps2pdf mathfunc.ps && atril mathfunc.pdf
+
