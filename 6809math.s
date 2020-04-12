@@ -158,9 +158,9 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 ;;; divide a 16-bit signed quantity in X into a 16-bit signed quantity in D
 x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 	stx	,s	;	; int16_t s[2]; // to detect crossing past zero
-	beq	6f	;	; if ((s[0] = x) == 0)
+	beq	7f	;	; if ((s[0] = x) == 0)
 	std	2,s	;	;  return 0x8000; // divisor 0, return NaN 
-	beq 	4f	;	; if ((s[1] = d) == 0)
+	beq 	8f	;	; if ((s[1] = d) == 0)
 	ldx	#$0000	;	;  return 0; // quotient also 0, without calc'n
 	eora	,s	;	;       // maintain sign // remember signs' xor
 	sta	3,s	;	; s[1] = (0xff00 & s[1]) | ((d^x) >> 8);// in b7
@@ -169,7 +169,7 @@ x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 	coma		;	;
 	comb		;	;
 	addd	#$0001	;	;
-	std	2,s	;	;  s[1] = d = -d; // now x and d have same sign
+	sta	2,s	;	;  s[1] = d = -d; // now x and d have same sign
 	bra	1f	;	;
 0	eora	,s	;	;
 1	leax	1,x	;	; for (x = 1; s[0]; x++)
@@ -182,20 +182,22 @@ x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 2	tst	2,s	;	;   if (s[1] < 0)
 	bpl	1b	;	;    break; // crossed 0 (negative to positive)
 3	exg	x,d	;	; int16_t temp = x, /*R*/ x = d, d /*Q*/ = temp;
-4	cmpx	,s	;	;// <--- FIXME: this didn't catch 32767/-8191==4
+ if 0	
+4	cmpx	,s	;	;
 	bne	5f	;	;
 	ldx	#$0000	;	;
+ endif
 5	cmpx	#$0000	;	;
-	bpl	7f	;	; if (x > 0) // nonzero remainder, subtract 1
+	beq	6f	;	; if (x > 0) // nonzero remainder, subtract 1
 	addd	#$ffff	;	;  d--; // from quotient rather than rounding up
-	tst	3,s	;	;
-	bpl	7f	;	; if (s[1] & 0x0080)
+6	tst	3,s	;	;
+	bpl	8f	;	; if (s[1] & 0x0080)
 	coma		;	;
 	comb		;	;
 	addd	#$0001	;	;  d = -d;
-	bra	7f	;	;
-6	ldd	#$8000	;	; // |remainder| = |divisor| + |x|
-7	leas	4,s	;	; return d; // floor of quotient
+	bra	8f	;	;
+7	ldd	#$8000	;	; // |remainder| = |divisor| + |x|
+8	leas	4,s	;	; return d; // floor of quotient
 	rts		;	;} // x16divd()
 ;;; now try multiplying using x8mul16()
 

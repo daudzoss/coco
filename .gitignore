@@ -2,5 +2,7 @@
 *.lst
 *.sym
 *.bin
+*.ps
+*.pdf
 6809test.s
 
