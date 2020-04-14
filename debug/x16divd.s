@@ -1,5 +1,5 @@
 ;;; x16divd.s
- if 1
+ if 0
 	ldd	#$8001		;-
 	ldx	#$2000		;3
 	jsr	x16divd		;2
