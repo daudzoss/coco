@@ -16,13 +16,11 @@
 	beq	1f		;    continue;
 	jsr	x8mul16		;   d = x8mul16(x, d); // d *= x;
 	ldx	2,s		;   x = s[1];
-	pshs	x
 	jsr	x16divd		;   d = x16divd(d, x); // d /= x;
-	puls	x
 	cmpd	,s		;
 	beq	1f		;   if (d != s[0])
-;	ldx	2,x		;    // x will hold divisor that failed check
-	ldy	,s;#$fa17		;    // d will hold failed quotient, s[0] actual
+	ldx	2,x		;    // x will hold divisor that failed check
+	ldy	#$fa17		;    // d will hold failed quotient, s[0] actual
 	leas	4,s		;    return 0xfa17; // faIL
 	swi			;    // so dividend that failed check was x*s[0]
 	
@@ -30,8 +28,7 @@
 	std	,s		;
 	bra	0b		;  }
 	
-2	ldx	2,x		; }
-	ldy	#$9a55		;
+2	ldy	#$9a55		; }
 	leas	4,s		; return 0x9a55; // PaSS
 	swi			;} // mul8div8()
  endif
