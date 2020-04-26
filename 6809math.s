@@ -199,7 +199,6 @@ x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 7	ldd	#$8000	;	; // |remainder| = |divisor| + |x|
 8	leas	4,s	;	; return d; // floor of quotient
 	rts		;	;} // x16divd()
-;;; now try multiplying using x8mul16()
 
 ;;; multiply an 8-bit signed number in X by a 16-bit signed number in D
 x8mul16	stx	,--s	;	;int16_t x8mul16(int8_t x, uint16_t d) {

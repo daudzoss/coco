@@ -1,5 +1,5 @@
 ;;; mul8div8.s
- if 1
+ if 0
 	ldx	#$ff80		;uint16_t mul8div8(void) {
 	stx	,--s		; int16_t s[2];
 	clr	,--s		; for (s[1] = 0xff81; s <= 0x007f; s[1]++) {
