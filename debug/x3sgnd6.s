@@ -1,13 +1,12 @@
 ;;; x3sgnd6.s
  if 1
-	ldx	#$0000		;uint16_t x3divx2(void) {
-	stx	,--s		; int16_t s[2];
+	ldx	#$0000		;{
+	leas	-1,s		;
 	
-0	ldx	,s		;
-	leax	1,x		;
+1	leax	1,x		;
 	stx	,s		;
 	cmpx	#$0040		;
-	bge	2f		;
+	bhi	2f		;
 
 	jsr	x3sgnd6		;
 	ldx	,s		;
@@ -15,12 +14,12 @@
 	ldx	,s		;
 	jsr	x16divd		;
 	ldx	,s		;
-	std	,--s		;
-	cmpx	,s++		;
-	beq	0b		;
-
-	
+	std	,s		;
+	cmpx	,s		; for (x = 1; x < 1<<6; x++) {
+	beq	1b		;  d = x * x * x; // s3sgnd6() under test
+	ldy	#$fa17		;  if (d / x / x != x)
+	bra	3f		;   return 0xfa17;
 2	ldy	#$9a55		; }
-	leas	4,s		; return 0x9a55; // PaSS
-	swi			;} // mul8div8()
+3	leas	2,s		; return 0x9a55;
+	swi			;}
  endif
