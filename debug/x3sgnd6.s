@@ -1,7 +1,7 @@
 ;;; x3sgnd6.s
- if 1
+ if 1;//fixme: x3sgnd6() probably does have major bugs
 	ldx	#$0000		;{
-	leas	-1,s		;
+	leas	-2,s		;
 	
 1	leax	1,x		;
 	stx	,s		;
@@ -16,7 +16,7 @@
 	ldx	,s		;
 	std	,s		;
 	cmpx	,s		; for (x = 1; x < 1<<6; x++) {
-	beq	1b		;  d = x * x * x; // s3sgnd6() under test
+	beq	1b		;  d = x * x * x; // x3sgnd6() under test
 	ldy	#$fa17		;  if (d / x / x != x)
 	bra	3f		;   return 0xfa17;
 2	ldy	#$9a55		; }
