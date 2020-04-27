@@ -5,7 +5,7 @@
 	
 0	leax	1,x		;
 	stx	,s		;
-	cmpx	#$0040		;
+	cmpx	#$0020		;
 	bge	3f		;
 	
 	jsr	x3sgnd6		;  int16_t d = x * x * x; // function under test

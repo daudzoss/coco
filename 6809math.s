@@ -318,23 +318,25 @@ x3sgnd6	 stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	 fdb	$6978		;                                   27000,//30^3
 	 fdb	$745f		;                                   29791 //31^3
 x3sgnd6	 tfr	x,d	; 6	;                                 };
-	 bitb	#$60	; 2	; register int16_t d = (int16_t)x;
-	 bmi	2f	; 3	; if (((d & 0xff80) && !(d & 0x0060))
-	 bne	3f	; 3	;     ||
-1	 ldd	#$8000	; 3	;     (!(d & 0xff80) && (d & 0x0060)))
-	 rts		; 5	;  return d = NaN;
-2	 beq	1b	; 3	; else if (d < 0)
-	 negb		; 2	;
-	 jsr	3f	; 8(31)	;
+	 tstb		;	;
+	 bmi	2f	;	; if (x >= 0) {
+1	 bitb	#$60	;	;
+	 beq	3f	;	;  if (x > 31)  
+	 ldd	#$8000	;	;
+	 rts		;	;   return NaN;
+	
+2	 negb		; 2	; } else
+	 jsr	1b	; 8()	;
 	 coma		; 2	;
 	 comb		; 2	;
-	 addd	#$0001	; 4	;
-	 rts		; 5(60)	;  return d = -x3sgnd6(-d);// odd so f(-x)=-f(x)
+	 addd	#$0001	; 4	; // 0x8000 is its inverse conveniently for out of range
+	 rts		; 5()	;  return d = -x3sgnd6(-x);// odd so f(-x)=-f(x)
+	
 3	 lda	#$ff	; 2	;
 	 aslb		; 2	;
 	 orb	#$c0	; 2	;
-	 ldx	#x3sgnd6; 3	; else
-	 ldd	d,x	; 9	;  return d = lut[d & 0x001f];
+	 ldx	#x3sgnd6; 3	;
+	 ldd	d,x	; 9	; return d = lut[x & 0x001f];
 	 rts		; 5(37)	;} // x3sgnd6()
 	endif
 
