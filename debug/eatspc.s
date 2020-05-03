@@ -17,8 +17,9 @@
 	swi			;
 2	ldy	#$9a55		;
 	swi			;
-hellow	fcb	$0c
+hellow	fcb	patholo-hellow-1
 	fcc	"Hello world!"
-patholo	fcb	$0c
+patholo	fcb	lastone-patholo-1
 	fcc	"            "
+lastone
  endif

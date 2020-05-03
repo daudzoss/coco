@@ -1,5 +1,5 @@
 ;;; x3sgnd6.s
- if 1;//fixme: x3sgnd6() probably does have major bugs
+ if 0
 	ldx	#$ffe0		;{
 	leas	-2,s		; for (int16_t x = -(1<<5) + 1; x < 1<<5; x++) {
 	

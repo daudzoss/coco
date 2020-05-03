@@ -348,10 +348,10 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	beq	4f	;	;  if (d) { // successfully converted into Y
 	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
 	cmpa	#'@'	;	;
-	bne	1f	;	;   if (a == '@') {// comma before initial guess
+	bne	1f	;	;   if (a == '@') {// @ before initial guess
 	jsr	get5bcd	;	;    uint8_t b = get5bcd(&x, &y);
 	tstb		;	;    if (b == 0)
-	beq	4f	;	;     return -1;// no value provided after comma
+	beq	4f	;	;     return -1;// no value provided after @
 	bra	5f	;	;    break; // initial guess (or junk) is in y
 1	deca		;	;
 	anda	#$40	;	;   } else if (a >= 'A') { // letter, maybe exp
