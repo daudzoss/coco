@@ -343,13 +343,13 @@ x3sgnd6	 tfr	x,d	; 6	;                                 };
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
 getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	bhi	5f	;	; while (x <= (char*)(s[5])) { // not at end yet
-	jsr	get5bcd	; 	;  int16_t y, d = get5bcd(&x, &y); // past digit
+ 	jsr	get5bcd	; 	;  int16_t y, d = get5bcd(&x, &y); // past digit
 	tstb		;	;
 	beq	4f	;	;  if (d) { // successfully converted into Y
 	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
 	cmpa	#'@'	;	;
 	bne	1f	;	;   if (a == '@') {// @ before initial guess
-	jsr	get5bcd	;	;    uint8_t b = get5bcd(&x, &y);
+ 	jsr	get5bcd	;	;    uint8_t b = get5bcd(&x, &y);
 	tstb		;	;    if (b == 0)
 	beq	4f	;	;     return -1;// no value provided after @
 	bra	5f	;	;    break; // initial guess (or junk) is in y
@@ -357,7 +357,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	anda	#$40	;	;   } else if (a >= 'A') { // letter, maybe exp
 	beq	2f	;	;
 	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
-	cmpb	#'0'	;	;
+	cmpb	#'0'	;	; // FIXME: is utterly baffled seeing '+'(0x2b)
 	blo	4f	;	;    if (b < '0')
 	cmpb	#'4'	;	;     return -1;// invalid character encountered
 	blo	3f	;	;    else if (b >= '4')
@@ -367,10 +367,10 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	aslb		;	;   } // we now have coefficient in y, exp in b
 	andb	#$06	;	;   --x; // back up to get potential next term
 	addb	#$02	;	;
-	sts	,--s	;	;
-	addd	,s++	;	;
-	exg	d,y	; 8	;
-	addd	,y	;	;
+	sts	,--s	;	;   // y has the coefficient
+	addd	,s++	;	;   // d has stack address for coeffiecient
+	exg	d,y	; 8	;   // d has the coefficient
+	addd	,y	;	;   // y has stack address for coeffiecient
 	std	,y	;	;   s[b - '0'] += y;
 	bra	getpoly	;	;   continue;
 4	lda	#$ff	;	;

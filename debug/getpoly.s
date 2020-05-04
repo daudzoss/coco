@@ -1,5 +1,6 @@
 ;;; getpoly.s
  if 1 ; // something rotten in the state of getpoly()
+	bra	coeff4
 chkpoly	macro
 	ldb	poly\1	; 2	;uint16_t chkpoly(char poly[],uint16_t coeff[]){
 	ldx	#poly\1	; 3	; char* x;
@@ -34,11 +35,13 @@ chkpoly	macro
 	cmpy	#$9a55		;
 	beq	2f		;
 	swi
+	
 2	chkpoly	2
 	cmpy	#$9a55		;
 	beq	3f		;
-3	swi
 	
+3	swi
+
 poly1	fcb	poly2-poly1-1
 	fcc	"1x2-6x+9"
 poly2	fcb	poly3-poly2-1
