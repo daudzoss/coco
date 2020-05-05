@@ -357,11 +357,11 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 	anda	#$40	;	;   } else if (a >= 'A') { // letter, maybe exp
 	beq	2f	;	;
 	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
-	cmpb	#'0'	;	; // FIXME: is utterly baffled seeing '+'(0x2b)
-	blo	4f	;	;    if (b < '0')
-	cmpb	#'4'	;	;     return -1;// invalid character encountered
-	blo	3f	;	;    else if (b >= '4')
-	ldb	#'1'	;	;     b = '1'; // implied exponent of 1
+	cmpb	#0x33	;	;
+	bhi	4f	;	;    if (b > '3')
+	cmpb	#0x2f	;	;     return -1;// invalid character encountered
+	bhi	3f	;	;    else if (b < '0')
+	ldb	#'1'	;	;     b = '1'; // assume +/-, implied 1 exponent
 2	leax	-1,x	;	;    else
 3	clra		;	;     ++x; // ate the exponent, so undo our --x:
 	aslb		;	;   } // we now have coefficient in y, exp in b
@@ -376,13 +376,13 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
 4	lda	#$ff	;	;
 	ldb	#$ff	;	;  } else
 	rts		;	;   return -1;// conversion failed
-5	tfr	y,x	; 6	;
+5	tfr	y,x	; 6	; }
 	clra		;	;
-	ldb	4,s	;	; }
+	ldb	4,s	;	;
 	orb	5,s	;	; 
 	orb	6,s	;	; x = y; // initial guess (or junk) is in x
 	orb	7,s	;	; // (doesn't matter, used only for convergence)
-	orb	8,s	;	;
+	orb	8,s	;	; // FIXME: intial guess y might cause overflow
 	orb	9,s	;	; return s[1] | s[2] | s[3];// 0 if no var found
 	rts		;	;} // getpoly()
 
