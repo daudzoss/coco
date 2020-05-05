@@ -34,33 +34,37 @@ chkpoly	macro
 1	chkpoly	1
 	cmpy	#$9a55		;
 	beq	2f		;
-	swi
+	swi			;
 	
 2	chkpoly	2
 	cmpy	#$9a55		;
 	beq	3f		;
+	swi			;
 	
-3	swi
+3	chkpoly	3		;
+	cmpy	#$9a55		;
+	beq	4f		;
+4	swi
 
 poly1	fcb	poly2-poly1-1
 	fcc	"1x2-6x+9"
 poly2	fcb	poly3-poly2-1
 	fcc	"x2-7x+12"
 poly3	fcb	poly4-poly3-1
-	fcc	"8x3+1"
+	fcc	"8x3+8"
 poly4
 	
-coeff1	fdb	0
+coeff1	fdb	9
+	fdb	-1
 	fdb	1
-	fdb	-6
-	fdb	9
-coeff2	fdb	0	
-	fdb	1
+	fdb	0
+coeff2	fdb	12	
 	fdb	-7
-	fdb	12
+	fdb	1
+	fdb	0
 coeff3	fdb	8
 	fdb	0
 	fdb	0
-	fdb	1
+	fdb	8
 coeff4
  endif

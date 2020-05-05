@@ -1,5 +1,5 @@
 ;;; x3sgnd6.s
- if 0
+ if 1
 	ldx	#$ffe0		;{
 	leas	-2,s		; for (int16_t x = -(1<<5) + 1; x < 1<<5; x++) {
 	

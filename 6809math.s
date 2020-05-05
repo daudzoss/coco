@@ -487,8 +487,8 @@ o3drv1x	ldd	#$0000	;	;int16_t o3drv1x(int16_t x, int16_t s[4]) {
 	asl	3,s	;	;
 	rol	2,s	;	; s1[0] = 1 * s[1]; // a1 x   ->   a1
 	jsr	o3eval	;	; return d = o3eval(x, s1);
-	leas	8,s	;	;} // o3drv1x()
-
+	leas	8,s	;	;
+	rts		;	;} // o3drv1x()
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
 o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
