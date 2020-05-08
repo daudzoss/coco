@@ -116,7 +116,7 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	rts		; 5(343);} // get3bcd()
 
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
-get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
+get5bcd	ldy	#$0000	; 4	;int8_t get5bcd(const char** x, int16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
 0	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
 	leay	,y	;	;
@@ -155,6 +155,20 @@ get5bcd	ldy	#$0000	; 4	;int16_t get5bcd(const char** x, int16_t* y) {
 6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(945);} // get5bcd()
 
+;;; wrapper for get5bcd() that checks to make sure X doesn't overflow past D
+getcoef	std	,--s	;	;uint8_t getcoef(const char** x, const char* d,
+	clrb		;	;                int16_t* y) {
+	cmpx	,s	;	; char* s[1];
+	bhi	2f	;	; uint8_t b;
+	jsr	get5bcd	;	;
+	leax	-1,x	;	; *s = d;// last memory location allowed to see
+	cmpx	,s	;	; if (*x > *s)
+	bls	1f	;	;  return 0; // already past the buffer
+	clrb		;	; b = get5bcd(x, y);
+1	leax	1,x	;	;
+2	leas	2,s	;	; return (*x <= *s + 1) ? 0 /*buffer ovfl*/ : b;
+	rts		;	;} // getcoef()
+	
 ;;; divide a 16-bit signed quantity in X into a 16-bit signed quantity in D
 x16divd	leas	-4,s	;	;int16_t x16divd(int16_t d, int16_t x) {
 	stx	,s	;	; int16_t s[2]; // to detect crossing past zero
@@ -341,15 +355,17 @@ x3sgnd6	 tfr	x,d	; 6	;                                 };
 	endif
 
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
-getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[5]){
+getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[]) {
 	bhi	5f	;	; while (x <= (char*)(s[5])) { // not at end yet
- 	jsr	get5bcd	; 	;  int16_t y, d = get5bcd(&x, &y); // past digit
+	ldd	10,s	;	;  int16_t y, d,
+ 	jsr	getcoef	; 	;  d = getcoef(s[5], &x, &y); // past digit
 	tstb		;	;
 	beq	4f	;	;  if (d) { // successfully converted into Y
 	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
 	cmpa	#'@'	;	;
-	bne	1f	;	;   if (a == '@') {// @ before initial guess
- 	jsr	get5bcd	;	;    uint8_t b = get5bcd(&x, &y);
+	bne	1f	;	;   if (a == '@') {// '@' before initial guess
+	ldd	10,s	;	;    uint8_t b = getcoef(s[5], &x, &y);
+ 	jsr	getcoef	;	;
 	tstb		;	;    if (b == 0)
 	beq	4f	;	;     return -1;// no value provided after @
 	bra	5f	;	;    break; // initial guess (or junk) is in y
