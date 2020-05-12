@@ -22,7 +22,7 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n;// length byte
 ;;; look ahead to next character in the array, plus one more if it's a +/- sign
 peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 	tsta		; 2	; char b = *(*x);
-	bne	3f	; 3	; if (a == '\0') { no sign found yet
+	bne	4f	; 3	; if (a == '\0') { no sign found yet
 	cmpb	#'-'	; 2	;
 	beq	1f	; 3	;
 	cmpb	#'+'	; 2	;
@@ -34,8 +34,14 @@ peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 	cmpb	#'A'	; 2	;
 	blo	2f	; 3	;   if (toupper(b) >= 'A' &&
 	cmpb	#'Z'	; 2	;       toupper(b) <= 'Z')
-	bhi	2f	; 3	;    b = 1; // variable follows sign; coeff is 1
-	ldb	#$01	; 2	;  }
-	stb	,s	;	; }
-2	ldb	,s+	;	; return b;
-3	rts		; 5 (40);} // peekdig()
+	bhi	2f	; 3	;    b = 1; // variable follows sign: coeff is 1
+	ldb	#$01	; 2	;
+	stb	,s	;	;
+2	ldb	,s+	;	;
+	rts		;	;  } else if (b >= '0' && b <= '9') 
+3	cmpb	#'0'	;	;
+	blo	4f	;	;
+	cmpb	#'9'	;	;   *a = '+'; // found digits before sign: is +
+	bhi	4f	;	; }
+	lda	#'+'	;	; return b;
+4	rts		; 5 (40);} // peekdig()
