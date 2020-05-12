@@ -46,11 +46,11 @@ chkpoly	macro
 	beq	4f		;
 4	swi
 
-poly1	fcb	poly2-poly1-2
+poly1	fcb	-2 + poly2-poly1
 	fcc	"9-6x+1x2",0
-poly2	fcb	poly3-poly2-2
+poly2	fcb	-2 + poly3-poly2
 	fcc	"12-7x+x2",0
-poly3	fcb	poly4-poly3-2
+poly3	fcb	-2 + poly4-poly3
 	fcc	"8+8x3",0
 poly4
 	

@@ -119,13 +119,15 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 get5bcd	ldy	#$0000	; 4	;int8_t get5bcd(const char** x, int16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
 0	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
-	leay	,y	;	;
-	bne	1f	;	; do {
-	bitb	#$40	;	;  b = peekdig(x, &a); // sign or 1st dig in A
+	cmpb	#0	;	; do {
+	beq	4f	;	;  b = peekdig(x, &a); // sign or 1st dig in A
+	leay	,y	;	;  if (!b)
+	bne	1f	;	;   break; // encountered '\0'
+	bitb	#$40	;	;
 	beq	1f	;	;
 	cmpb	#'@'	;	;
 	beq	1f	;	;
-	ldb	#$01	;	;  if (y == 0 && b >= 'A') {
+	ldb	#$01	;	;  else if (y == 0 && b >= 'A') {
 	stb	,-s	; 6	;   s[y++] = 1; // var with implicit 1 coeff
 	leay	1,y	;	;
 	bra	4f	; 3	;   break;

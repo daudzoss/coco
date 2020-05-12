@@ -29,15 +29,13 @@ peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 	bne	3f	; 3	;  if (b == '-' || b == '+') { // first sign  
 1	lda	,x+	; 4	;   *a = b; // gets stored in *a to remember '-'
 	ldb	,x	; 2	;   b = *++(*x); // then advance *x pointer once
-	cmpb	#'0'	; 2	;
-	blo	2f	; 3	;
-	cmpb	#'9'	; 2	;
-	bhi	2f	; 3	;   if (b >= '0' && b <= '9')
-	rts		; 2	;    ; // digit follows sign as expected
-2	andb	#0xdf	; 2	;   if (toupper(b) >= 'A' &&
-	cmpb	#'A'	; 2	;       toupper(b) <= 'Z')
-	blo	3f	; 3	;    b = 1; // variable follows sign; coeff is 1
-	cmpb	#'Z'	; 2	;  }
-	bhi	3f	; 3	; }
-	ldb	#$01	; 2	; return b;
+	stb	,-s	;	;
+	andb	#0xdf	; 2	;
+	cmpb	#'A'	; 2	;
+	blo	2f	; 3	;   if (toupper(b) >= 'A' &&
+	cmpb	#'Z'	; 2	;       toupper(b) <= 'Z')
+	bhi	2f	; 3	;    b = 1; // variable follows sign; coeff is 1
+	ldb	#$01	; 2	;  }
+	stb	,s	;	; }
+2	ldb	,s+	;	; return b;
 3	rts		; 5 (40);} // peekdig()
