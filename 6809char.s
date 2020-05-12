@@ -22,11 +22,11 @@ eatspc	stx	,--s	; 9	;void eatspc(struct {uint8_t n;// length byte
 ;;; look ahead to next character in the array, plus one more if it's a +/- sign
 peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 	tsta		; 2	; char b = *(*x);
-	bne	4f	; 3	; if (a == '\0') { no sign found yet
+	bne	3f	; 3	; if (a == '\0') { no sign found yet
 	cmpb	#'-'	; 2	;
 	beq	1f	; 3	;
 	cmpb	#'+'	; 2	;
-	bne	4f	; 3	;  if (b == '-' || b == '+') { // first sign  
+	bne	3f	; 3	;  if (b == '-' || b == '+') { // first sign  
 1	lda	,x+	; 4	;   *a = b; // gets stored in *a to remember '-'
 	ldb	,x	; 2	;   b = *++(*x); // then advance *x pointer once
 	cmpb	#'0'	; 2	;
@@ -34,12 +34,10 @@ peekdig	ldb	,x	; 2	;char peekdig(const char** x, char* a/*zero*/) {
 	cmpb	#'9'	; 2	;
 	bhi	2f	; 3	;   if (b >= '0' && b <= '9')
 	rts		; 2	;    ; // digit follows sign as expected
-2	andb	#0xdf	; 2	;
-	cmpb	#'A'	; 2	;   else if (toupper(b) >= 'A' &&
-	blo	3f	; 3	;            toupper(b) <= 'Z')
-	cmpb	#'Z'	; 2	;    b = 1; // variable follows sign; coeff is 1
-	bhi	3f	; 3	;   else b = 0; // not a digit, sign, or letter
-	ldb	#$01	; 2	;  }
-	rts		;	; }
-3	clrb		;	; return b;
-4	rts		; 5 (40);} // peekdig()
+2	andb	#0xdf	; 2	;   if (toupper(b) >= 'A' &&
+	cmpb	#'A'	; 2	;       toupper(b) <= 'Z')
+	blo	3f	; 3	;    b = 1; // variable follows sign; coeff is 1
+	cmpb	#'Z'	; 2	;  }
+	bhi	3f	; 3	; }
+	ldb	#$01	; 2	; return b;
+3	rts		; 5 (40);} // peekdig()
