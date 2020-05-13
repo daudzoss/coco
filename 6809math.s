@@ -359,22 +359,23 @@ x3sgnd6	 tfr	x,d	; 6	;                                 };
 ;;; read a polynomial with int16_t coefficients, variables and uint2_t exponents
 getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[]) {
 	bhi	5f	;	; while (x <= (char*)(s[5])) { // not at end yet
-	ldd	10,s	;	;  int16_t y, d,
+	ldd	10,s	;	;  int16_t y, d;
  	jsr	getcoef	; 	;  d = getcoef(s[5], &x, &y); // past digit
 	tstb		;	;
 	beq	4f	;	;  if (d) { // successfully converted into Y
 	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
+	ldb	#'0'	;	;   char b = '0'; // default exponent is 0
 	cmpa	#'@'	;	;
 	bne	1f	;	;   if (a == '@') {// '@' before initial guess
-	ldd	10,s	;	;    uint8_t b = getcoef(s[5], &x, &y);
+	ldd	10,s	;	;    b = getcoef(s[5], &x, &y);
  	jsr	getcoef	;	;
 	tstb		;	;    if (b == 0)
 	beq	4f	;	;     return -1;// no value provided after @
-	bra	5f	;	;    break; // initial guess (or junk) is in y
+	bra	5f	;	;    break; // initial guess (or junk) in Y
 1	deca		;	;
 	anda	#$40	;	;   } else if (a >= 'A') { // letter, maybe exp
 	beq	2f	;	;
-	ldb	,x+	;	;    char b = *x++;  // expecting 0,1,2,3,+ or -
+	ldb	,x+	;	;    b = *x++;  // expecting 0,1,2,3,+ or -
 	cmpb	#0x33	;	;
 	bhi	4f	;	;    if (b > '3')
 	cmpb	#0x2f	;	;     return -1;// invalid character encountered
@@ -397,8 +398,8 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[]) {
 5	tfr	y,x	; 6	; }
 	clra		;	;
 	ldb	4,s	;	;
-	orb	5,s	;	; 
-	orb	6,s	;	; x = y; // initial guess (or junk) is in x
+	orb	5,s	;	;
+	orb	6,s	;	; x = y; // initial guess (or junk) is in X
 	orb	7,s	;	; // (doesn't matter, used only for convergence)
 	orb	8,s	;	; // FIXME: intial guess y might cause overflow
 	orb	9,s	;	; return s[1] | s[2] | s[3];// 0 if no var found
