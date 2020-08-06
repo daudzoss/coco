@@ -8,10 +8,10 @@ d0to199	lda	#$0a	; 2	;uint16_t d0to199(uint1_t c,  // 100's
 
 ;;; convert a 3-digit signed BCD -128..127 to binary unsigned in X, signed in D
 d8sgnd	bmi	d8ngtv	; 3	;int16_t d8sgnd(uint1_t n, // sign
-d8pstv	jsr	d0to199	; 8 (33);               uint1_t c,  // 100's
+d8pstv	bsr	d0to199	; 8 (33);               uint1_t c,  // 100's
 	tfr	x,d	; 6	;               uint16_t d,  // 10's
 	rts		; 2	;               uint16_t x) { // 1's
-d8ngtv	jsr	d0to199	; 8 (33); return n ? d8ngtv(c, d, x) : d0to199(c, d, x);
+d8ngtv	bsr	d0to199	; 8 (33); return n ? d8ngtv(c, d, x) : d0to199(c, d, x);
 	tfr	x,d	; 6	;} // d8sgnd()
 	negb		; 2	;int16_t d8ngtv(uint1_t c,uint16_t d,uint16_t x)
 	sex		; 2	;{return d = -(x += c*100 + d*10);
@@ -37,7 +37,7 @@ d0to32k	macro
 	beq	3f	; 3	;
 	ldd	#$0000	; 3	;
 	bra	2f	; 3	;
-1	jsr	x10ind	; 8 (46); for (x = 0x0000; y; y--) {
+1	bsr	x10ind	; 8 (46); for (x = 0x0000; y; y--) {
 2	leax	5,s	; 5 	;  // d is now x*10, x is now the digit pointer
 	exg	d,x	; 8	;  x *= 10; // d is now the digit pointer
 	ldb	d,y	; 8	;  uint8_t b = s[ /* 5[sic] + */ y]; // Y',X',PC
@@ -64,7 +64,7 @@ d16ngtv	d0to32k		; 8(402); uint16_t x, d = y; // digit count y <= 5
 ;;; convert a signed ASCII decimal integer -127..127 at X to binary in D
 get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
-1	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[4];
+1	lbsr	peekdig	; 8 (48); uint8_t a = 0, b, s[4];
 	cmpb	#'0'	; 2	;
 	blo	3f	; 3	; do {
 	cmpb	#'9'	; 2	;  b = peekdig(x, &a); // a is '-' if detected
@@ -104,10 +104,10 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 	cmpa	#'-'	; 2	;
 	beq	7f	; 3	;  int16_t d;
 	lsrb		; 2	;               
-	jsr	d8pstv	; 8 (33);  if (a != '-')
+	lbsr	d8pstv	; 8 (33);  if (a != '-')
 	bra	8f	; 3	;   d = d8pstv(b & 0x01, b >> 1, x); //100,10,1
 7	lsrb		; 2	;  else
-	jsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  //100,10,1
+	lbsr	d8ngtv	; 8 (49);   d = d8ngtv(b & 0x01, b >> 1, x);  //100,10,1
 8	ldx	,s++	; 8	;
 	rts		; 5	;  return d;
 9	tfr	y,d	; ?	; } else
@@ -118,7 +118,7 @@ get3bcd	ldy	#$0000	; 4	;int16_t get3bcd(const char** x, uint16_t* y) {
 ;;; convert a signed ASCII decimal integer -32767..32767 at X to binary in Y
 get5bcd	ldy	#$0000	; 4	;int8_t get5bcd(const char** x, int16_t* y) {
 	clra		; 2	; uint16_t y = 0, d;
-0	jsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
+0	lbsr	peekdig	; 8 (48); uint8_t a = 0, b, s[5];
 	tstb		;	; do {
 	beq	4f	;	;  b = peekdig(x, &a); // sign or 1st dig in A
 	leay	,y	;	;  if (!b)
@@ -151,9 +151,9 @@ get5bcd	ldy	#$0000	; 4	;int8_t get5bcd(const char** x, int16_t* y) {
 	bra	6f	; 3	; if (b) {
 4	cmpa	#'-'	; 2	;  if (a != '-')
 	beq	5f	; 3	;   b = y, y = d16pstv(y, s); // x is preserved
-	jsr	d16pstv	; 8(402);  else
+	lbsr	d16pstv	; 8(402);  else
 	bra	6f	; 3	;   b = y, y = d16ngtv(y, s); // =-d16pstv(y,s);
-5	jsr	d16ngtv	; 8(439); }
+5	lbsr	d16ngtv	; 8(439); }
 6	leas	d,s	; 8	; return b & 0x07; // d digits converted as y
 	rts		; 5(945);} // get5bcd()
 
@@ -162,7 +162,7 @@ getcoef	std	,--s	;	;uint8_t getcoef(const char** x, const char* d,
 	clrb		;	;                int16_t* y) {
 	cmpx	,s	;	; char* s[1];
 	bhi	2f	;	; uint8_t b;
-	jsr	get5bcd	;	;
+	bsr	get5bcd	;	;
 	leax	-1,x	;	; *s = d;// last memory location allowed to see
 	cmpx	,s	;	; if (*x > *s)
 	bls	1f	;	;  return 0; // already past the buffer
@@ -261,7 +261,7 @@ x3sgnd6	 stx	,--s	; 8	;int16_t x3sgnd6(register int16_t x) {
 	 negb		; 2	;
 	 sex		; 2	;
 	 tfr	d,x	; 6	;
-	 jsr	x3sgnd6	; 8(164);
+	 bsr	x3sgnd6	; 8(164);
 	 coma		; 2	;
 	 comb		; 2	;
 	 addd	#$0001	; 4	;  return -x3sgnd6(x = -d);
@@ -342,7 +342,7 @@ x3sgnd6	 tfr	x,d	; 6	;                                 };
 	 rts		;	;   return NaN;
 	
 2	 negb		; 2	; } else
-	 jsr	1b	; 8()	;
+	 bsr	1b	; 8()	;
 	 coma		; 2	;
 	 comb		; 2	;
 	 addd	#$0001	; 4	; // 0x8000 is its inverse conveniently for out of range
@@ -360,7 +360,7 @@ x3sgnd6	 tfr	x,d	; 6	;                                 };
 getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[]) {
 	bhi	5f	;	; while (x <= (char*)(s[5])) { // not at end yet
 	ldd	10,s	;	;  int16_t y, d;
- 	jsr	getcoef	; 	;  d = getcoef(s[5], &x, &y); // past digit
+ 	lbsr	getcoef	; 	;  d = getcoef(s[5], &x, &y); // past digit
 	tstb		;	;
 	beq	4f	;	;  if (d) { // successfully converted into Y
 	lda	,x+	;	;   char a = *x++; // expecting var, +, - or end
@@ -368,7 +368,7 @@ getpoly	cmpx	10,s	;	;int8_t getpoly(register char* x, int16_t s[]) {
 	cmpa	#'@'	;	;
 	bne	1f	;	;   if (a == '@') {// '@' before initial guess
 	ldd	10,s	;	;    b = getcoef(s[5], &x, &y);
- 	jsr	getcoef	;	;
+ 	lbsr	getcoef	;	;
 	tstb		;	;    if (b == 0)
 	beq	4f	;	;     return -1;// no value provided after @
 	bra	5f	;	;    break; // initial guess (or junk) in Y
@@ -433,7 +433,7 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 	
 	ldd	8,s	;	; if (s[1]) {
 	beq	3f	;	;
-	jsr	x8mul16	;	;  d.d = (x & 0xff) * s[1];
+	lbsr	x8mul16	;	;  d.d = (x & 0xff) * s[1];
 	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
 	addd	,s	;	;  d.d += sum;
 	bvs	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
@@ -456,7 +456,7 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 	beq	7f	;	;     s[2] > 255)
 	bra	10f	;	;   goto overf; // FIXME can't fit for now until
 7	ldx	10,s	;	;  else // using (256*a+b)x=256*a*x+b*x identity
-8	jsr	x8mul16	;	;   d.d *= s[2];
+8	lbsr	x8mul16	;	;   d.d *= s[2];
 	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
 	addd	,s	;	;  d.d += sum;
 	bvs	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;	
@@ -465,10 +465,10 @@ o3eval	stx	,--s	;	;int16_t o3eval(int16_t x, int16_t s[4]) {
 9	ldd	12,s	;	; }
 	beq	11f	;	; if (s[3]) {
 	ldx	2,s	;	;
-	jsr	x3sgnd6	;	;  d.d = x * x * x;
+	lbsr	x3sgnd6	;	;  d.d = x * x * x;
 	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
 	ldx	12,s	;	;
-	jsr	x8mul16	;	;
+	lbsr	x8mul16	;	;
 	ifisNaN	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;
 	addd	,s	;	;  d.d += sum;
 	bvs	10f	;	;  if (d.d < -32767 || d.d > 32767) goto overf;	
@@ -505,12 +505,12 @@ o3drv1x	ldd	#$0000	;	;int16_t o3drv1x(int16_t x, int16_t s[4]) {
 	std	4,s	;	; s1[1] = 2 * s[2]; // a2 x^2 -> 2 a2 x
 	asl	3,s	;	;
 	rol	2,s	;	; s1[0] = 1 * s[1]; // a1 x   ->   a1
-	jsr	o3eval	;	; return d = o3eval(x, s1);
+	lbsr	o3eval	;	; return d = o3eval(x, s1);
 	leas	8,s	;	;
 	rts		;	;} // o3drv1x()
 
 ;;; solve cubic equations (for int16_t solutions) using Newton-Raphson method
-o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
+o3solve	lbsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	stx	,--s	; 9	;{
 	clra		; 2	; uint16_t s[6]; // stack args to/from getpoly()
 	ldb	[,s]	;	; eatspc(x); // spaces compressed out of string
@@ -526,7 +526,7 @@ o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 	clr	1,s	; 7	; s[0] = 0; // x^0 coeff at stack pointer + 0
 	clr	,s	; 6	; // advance past size byte to string start:
 	leax	1,x	; 5	; union {char* c, int16_t i}* x = 1 + (void*)x;
-	jsr	getpoly	;5()    ; int16_t slope, d = getpoly(&x, s);
+	lbsr	getpoly	;5()    ; int16_t slope, d = getpoly(&x, s);
 	tstb		;	;
 	bne	1f	;	; if (!d) { // no vars encountered
 	dec	2,s	;	;
@@ -540,15 +540,15 @@ o3solve	jsr	eatspc	;8(6185);int16_t o3solve(struct {uint8_t n; char* c;}*x)
 3	ldx	#$0000	;	; x = 0; // initial guess
 	ldy	#$0003	;	; for (int16_t y = 3; y && d=o3eval(x, s); y--)
 4	stx	10,s	;	;  // X temporarily held as s[5]
-	jsr	o3eval	;	;
+	lbsr	o3eval	;	;
 	ldx	10,s	;	;
 	cmpd	#$0000	;	;
 	beq	5f	;	;
 	std	8,s	;	;  // o3eval() temporarily held as s[4]
-	jsr	o3drv1x	;	;
+	bsr	o3drv1x	;	;
 	tfr	d,x	;	;
 	ldd	8,s	;	;
-	jsr	x16divd	;	;
+	lbsr	x16divd	;	;
 	subd	10,s	;	;
 	tfr	d,x	;	;  x -= d / o3drv1x(x);// Newton-Raphson formula
 	leay	-1,y	;	;  // FIXME: double-check y isn't used in funcs!
