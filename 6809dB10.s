@@ -1,9 +1,11 @@
+	include	"6809defs.s"
+
 Dx5	macro
 	std	,--s		;inline uint17_t Dx5(register uint15_t d) {
 	lslb			;
 	rola			;
 	lslb			;
-	rola			; return d + (d << 2); // d *= 5;
+	rola			; return d += (d << 2); // d *= 5;
 	addd	,s++		;} // Dx5()
 	endm
 
@@ -16,12 +18,12 @@ logcomp	macro
 	bne	slope1c		; case 0xf0:
 slope0c	
 	ldb	,s+		;
-	lsrb			;  return b / 2;
+	lsrb			;  return b = b * 1/2 + 0x80;
 	addb	#$80		; case 0x00:
-	bra	1f		;  return b * 2 + 0x80; 
+	bra	1f		;  return b = b * 2;
 slope2c
 	lslb			; default:
-	bra	1f		;  return b * 1 + 0x10;
+	bra	1f		;  return b = b * 1 + 0x10;
 slope1c
 	ldb	,s+		; }
 	addb	#$10		;} // logcomp()
@@ -42,7 +44,7 @@ log2	macro
 	bcs	log2_13		;   if (!c) { // bits 15, 14 and 13 zero
 	rolb			;    c = (d >> 15) & 1;
 	rola			;    d = (d << 1) | 0x0000; // (12 >> 0) & 1
-	bcs	log2ans		;    if (c) return (d << 8) | ((d >> 8) & 0xff);
+	bcs	log2ans		;    if (c) return d = (d << 8)|((d >> 8)&0xff);
 1	subb	#1		;
 	bitb	#$0f		;
 	beq	log2ans		;    for (uint4_t b = 11; b; b--) {
@@ -58,20 +60,20 @@ log2	macro
 	lsr	,s		;
 	lsr	,s		;     // stack now holds b
 	orb	,s+		;     // lowest-order bits in hi nybble, b in lo
-	puls	cc		;     if (c) return (((d & 0x00f0) | b) << 8) |
-	bcs	log2ans		;                             ((d >> 8) & 0xff);
+	puls	cc		;     if (c) return d = (((d & 0x00f0) | b) << 8)
+	bcs	log2ans		;                           | ((d >> 8) & 0xff);
 	bra	1b		;    }
 log2_13
 	andb	#$f0		;   } else // bit 13 holds the leftmost 1
-	orb	#$0d		;    return (d << 8) | ((d >> 8) & 0xf0) | 13;
+	orb	#$0d		;    return d = (d << 8) | ((d >> 8)&0xf0) | 13;
 	bra	log2ans		;
 log2_14
 	andb	#$f0		;  } else // bit 14 holds the leftmost 1
-	orb	#$0e		;   return (d << 8) | ((d >> 8) & 0xf0) | 14;
+	orb	#$0e		;   return d = (d << 8) | ((d >> 8)&0xf0) | 14;
 	bra	log2ans		;
 log2_15
 	andb	#$f0		; } else // bit 15 holds the leftmost 1
-	orb	#$0f		;  return  (d << 8) | ((d >> 8) & 0xf0) | 15;
+	orb	#$0f		;  return d = (d << 8) | ((d >> 8)&0xf0) | 15;
 log2ans
 	exg			;} // log2()
 	endm
@@ -79,12 +81,13 @@ log2ans
 dB10	macro
 	log2
 	anda	#$0f		;register uint14_t dB10(register uint16_t d) {
+	logcomp
 	Dx5
 	Dx5
-	rora			; uint8_t a, b;// log10(d) == log2(d)/log2(10)
-	rolb			; float f = 100*log2(d &= 0x0fff)/(2*2*2*2*2+1);
-	lsra			; a = (uint6_t) (f); // (actually /32 not /33)
-	rolb			; b = (uint8_t) (256.0 * (f - a));
-	lsra			; return (a << 8) | b;
+	rora			; d = log2(d); // log10(d) == log2(d)/log2(10)
+	rolb			; d = (d & 0x0f00) | logcomp (d & 0x00ff);
+	lsra			; d = d * 25 / 8; // == d * 100/32 ~= d * 10/3.3
+	rolb			; // b = (uint8_t) (256.0 * (log2(f) - a));
+	lsra			; return d;
 	rolb			;} // dB10()
 	endm
