@@ -43,7 +43,7 @@ log2	macro
 	rolb			;    c = (d >> 15) & 1;
 	rola			;    d = (d << 1) | 0x0000; // (12 >> 0) & 1
 	bcs	log2ans		;    if (c) return (d << 8) | ((d >> 8) & 0xff);
-log2_lp	subb	#1		;
+1	subb	#1		;
 	bitb	#$0f		;
 	beq	log2ans		;    for (uint4_t b = 11; b; b--) {
 	lslb			;     c = (d >> 15) & 1;
@@ -60,7 +60,7 @@ log2_lp	subb	#1		;
 	orb	,s+		;     // lowest-order bits in hi nybble, b in lo
 	puls	cc		;     if (c) return (((d & 0x00f0) | b) << 8) |
 	bcs	log2ans		;                             ((d >> 8) & 0xff);
-	bra	log2_lp		;    }
+	bra	1b		;    }
 log2_13
 	andb	#$f0		;   } else // bit 13 holds the leftmost 1
 	orb	#$0d		;    return (d << 8) | ((d >> 8) & 0xf0) | 13;
@@ -73,7 +73,18 @@ log2_15
 	andb	#$f0		; } else // bit 15 holds the leftmost 1
 	orb	#$0f		;  return  (d << 8) | ((d >> 8) & 0xf0) | 15;
 log2ans
-	exg			;}
+	exg			;} // log2()
 	endm
 
-dB10
+dB10	macro
+	log2
+	anda	#$0f		;register uint14_t dB10(register uint16_t d) {
+	Dx5
+	Dx5
+	rora			; uint8_t a, b;// log10(d) == log2(d)/log2(10)
+	rolb			; float f = 100*log2(d &= 0x0fff)/(2*2*2*2*2+1);
+	lsra			; a = (uint6_t) (f); // (actually /32 not /33)
+	rolb			; b = (uint8_t) (256.0 * (f - a));
+	lsra			; return (a << 8) | b;
+	rolb			;} // dB10()
+	endm
