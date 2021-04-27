@@ -45,7 +45,8 @@ log2	macro
 	beq	log2ans		;    for (uint4_t b = 11; b; b--) {
 	lslb			;     c = (d >> 15) & 1;
 	rola			;     d <<= 1;
-	pshs	cc,b		;
+	pshs	cc		;
+	stb	,-s		;
 	andb	#$e0		;     // just the 3 lowest-order bits
 	lsl	,s		;
 	lsl	,s		;
@@ -53,9 +54,9 @@ log2	macro
 	lsr	,s		;
 	lsr	,s		;
 	lsr	,s		;
-	lsr	,s		;     // stack now holds b
+	lsr	,s		;     // stack now holds b in the range 0 to 11
 	orb	,s+		;     // lowest-order bits in hi nybble, b in lo
-	puls	cc		;     if (c) return d = (((d & 0x00f0) | b) << 8)
+	puls	cc		;     if (c) return d = (((d & 0xf0) | b) << 8)
 	bcs	log2ans		;                           | ((d >> 8) & 0xff);
 	bra	1b		;    }
 log2_13	andb	#$f0		;   } else // bit 13 holds the leftmost 1
@@ -76,9 +77,9 @@ dB10	macro
 	Dx5
 	Dx5
 	rora			; d = log2(d); // log10(d) == log2(d)/log2(10)
-	rolb			; d = (d & 0x0f00) | logcomp (d & 0x00ff);
+	rolb			; d = (d & 0x0f00) | logcomp(d & 0x00ff);
 	lsra			; d = d * 25 / 8; // == d * 100/32 ~= d * 10/3.3
-	rolb			; // b = (uint8_t) (256.0 * (log2(f) - a));
-	lsra			; return d;
+	rolb			;
+	lsra			; return d; // 10log10(d) in a, fractional in b
 	rolb			;} // dB10()
 	endm
