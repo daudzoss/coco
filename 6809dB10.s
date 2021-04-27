@@ -1,5 +1,3 @@
-	include	"6809defs.s"
-
 Dx5	macro
 	std	,--s		;inline uint17_t Dx5(register uint15_t d) {
 	lslb			;
@@ -16,16 +14,13 @@ logcomp	macro
 	andb	#$e0		;
 	cmpb	#$e0		; case 0xe0:
 	bne	slope1c		; case 0xf0:
-slope0c	
-	ldb	,s+		;
+slope0c	ldb	,s+		;
 	lsrb			;  return b = b * 1/2 + 0x80;
 	addb	#$80		; case 0x00:
 	bra	1f		;  return b = b * 2;
-slope2c
-	lslb			; default:
+slope2c	lslb			; default:
 	bra	1f		;  return b = b * 1 + 0x10;
-slope1c
-	ldb	,s+		; }
+slope1c	ldb	,s+		; }
 	addb	#$10		;} // logcomp()
 1
 	endm
@@ -63,19 +58,15 @@ log2	macro
 	puls	cc		;     if (c) return d = (((d & 0x00f0) | b) << 8)
 	bcs	log2ans		;                           | ((d >> 8) & 0xff);
 	bra	1b		;    }
-log2_13
-	andb	#$f0		;   } else // bit 13 holds the leftmost 1
+log2_13	andb	#$f0		;   } else // bit 13 holds the leftmost 1
 	orb	#$0d		;    return d = (d << 8) | ((d >> 8)&0xf0) | 13;
 	bra	log2ans		;
-log2_14
-	andb	#$f0		;  } else // bit 14 holds the leftmost 1
+log2_14	andb	#$f0		;  } else // bit 14 holds the leftmost 1
 	orb	#$0e		;   return d = (d << 8) | ((d >> 8)&0xf0) | 14;
 	bra	log2ans		;
-log2_15
-	andb	#$f0		; } else // bit 15 holds the leftmost 1
+log2_15	andb	#$f0		; } else // bit 15 holds the leftmost 1
 	orb	#$0f		;  return d = (d << 8) | ((d >> 8)&0xf0) | 15;
-log2ans
-	exg			;} // log2()
+log2ans	exg	a,b		;} // log2()
 	endm
 
 dB10	macro
