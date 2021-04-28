@@ -1,3 +1,9 @@
+;;;  D = Dx5(D)
+;;;  quickly multiply a quantity by 5 by shifting and adding
+;;;
+;;;          16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;;  input:      0 <------- nonnegative integer <= 26214 ------> in D (A:B)
+;;;  output: <--------- nonnegative integer <= 131070 ---------> in C:D (C:A:B)
 Dx5	macro
 	std	,--s		;inline uint17_t Dx5(register uint15_t d) {
 	lslb			;
@@ -7,6 +13,12 @@ Dx5	macro
 	addd	,s++		;} // Dx5()
 	endm
 
+;;;  D = logcomp(D)
+;;;  implement a piecewise convex 16b normalized function approximating log2(x+1)
+;;;
+;;;          16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;;  input:     <-------- fraction normalized to 65536 --------> in D (A:B)
+;;;  output:    <-------- fraction normalized to 65536 --------> in D (A:B)
 logcomp	macro
 	bitb	#$f0		;inline uint8_t logcomp(register uint8_t b) {
 	beq	slope2c		; switch (b & 0xf0) {
@@ -25,6 +37,19 @@ slope1c	ldb	,s+		; }
 1
 	endm
 	
+;;;  D = logexpa(D)
+;;;  implement a piecewise concave 16b normalized function approximating 2^x - 1
+;;;
+;;;          16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;;  input:     <-------- fraction normalized to 65536 --------> in D (A:B)
+;;;  output:    <-------- fraction normalized to 65536 --------> in D (A:B)
+
+;;;  D = log2(D)
+;;;  approximate log base 2 of a 16 bit integer retaining 12 bits after leading 1
+;;;
+;;;          16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;;  input:     <---------- positive integer <= 65528 ---------> in D (A:B)
+;;;  output:    <fbits 11:8><truncd log><-- fraction bits 7:0 -> in D (A:B)
 log2	macro
 	orcc	#SEC		;inline uint16_t log2(register uint16_t d) {
 	rolb			; register uint1_t c;
@@ -70,6 +95,12 @@ log2_15	andb	#$f0		; } else // bit 15 holds the leftmost 1
 log2ans	exg	a,b		;} // log2()
 	endm
 
+;;;  D = dB10(D)
+;;;  a quick piecewise approximation to log base 10 of a 16 bit integer, times 10
+;;;
+;;;          16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;;  input:     <---------- positive integer <= 65528 ---------> in D (A:B)
+;;;  output:    <fbits 11:8><truncd log><-- fraction bits 7:0 -> in D (A:B)
 dB10	macro
 	log2
 	anda	#$0f		;register uint14_t dB10(register uint16_t d) {
@@ -83,3 +114,29 @@ dB10	macro
 	lsra			; return d; // 10log10(d) in a, fractional in b
 	rolb			;} // dB10()
 	endm
+normal macro
+1      tst     ,s	;inline
+       beq     2f	;
+       lsr     a	;
+       rol     b	;
+       if \1 > 1
+        lsr    a	;
+        rol    b	;
+        if \1 > 2
+         lsr   a	;
+         rol   b	;
+         if \1 > 3
+          lsr  a	;
+          rol  b	;
+          if \1 > 4
+           lsr a	;
+           rol b	;
+          endif
+         endif
+        endif
+       endif
+       dec     ,s	;
+       bra     1b	;}
+2
+       endm
+
