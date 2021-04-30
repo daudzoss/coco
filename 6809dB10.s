@@ -115,13 +115,16 @@ dB10	macro
 	rolb			;} // dB10()
 	endm
 
+;;; D = normal(S, D)
+;;; normalizes the quantity in D to 2^Stack raised to an optional power
+;;;
 normal macro
-1      tst     ,s		;inline
-       beq     2f		;
-       lsr     a		;
-       rol     b		;
+1      tst     ,s		;inline uint16_t normal(uint8_t *s,
+       beq     2f		;register uint16_t d) {
+       lsr     a		; while ((*s)--) {
+       rol     b		;  D /= 2;
        if \1 > 1
-        lsr    a		;
+        lsr    a		;  if (
         rol    b		;
         if \1 > 2
          lsr   a		;
@@ -137,7 +140,7 @@ normal macro
         endif
        endif
        dec     ,s		;
-       bra     1b		;}
+       bra     1b		;} // normal()
 2
        endm
 
