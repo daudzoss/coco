@@ -3,6 +3,16 @@
 
 	org	0x27ff
 	swi
-	dB10
-
+main	lda	#$00
+	pshs	a
+	
+loop	ldb	#$03
+	tf1pole
+	;; plot D
+	inc 	,s
+	lda	,s
+	bne	loop
+	
+	leas	1,s
+done	bra	done
 	end
