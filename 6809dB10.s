@@ -2,8 +2,8 @@
 ;;; quickly multiply a quantity by 5 by shifting and adding
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:      0 [------- nonnegative integer <= 26214 ------] in D (A:B)
-;;; output: [--------- nonnegative integer <= 131070 ---------] in C:D (C:A:B)
+;;; input:      0 [        nonnegative integer <= 26214       ] in D (A:B)
+;;; output: [          nonnegative integer <= 131070          ] in C:D (C:A:B)
 Dx5	macro
 	std	,--s		;inline uint17_t Dx5(register uint15_t d) {
 	lslb			;
@@ -17,8 +17,8 @@ Dx5	macro
 ;;; implement a piecewise convex 16b normalized function approximating log2(x+1)
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:     [-------- fraction normalized to 65536 --------] in D (A:B)
-;;; output:    [-------- fraction normalized to 65536 --------] in D (A:B)
+;;; input:     [         fraction normalized to 65536         ] in D (A:B)
+;;; output:    [         fraction normalized to 65536         ] in D (A:B)
 logcomp	macro
 	bitb	#$f0		;inline uint8_t logcomp(register uint8_t b) {
 	beq	slope2c		; switch (b & 0xf0) {
@@ -41,15 +41,15 @@ slope1c	ldb	,s+		; }
 ;;; implement a piecewise concave 16b normalized function approximating 2^x - 1
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:     [-------- fraction normalized to 65536 --------] in D (A:B)
-;;; output:    [-------- fraction normalized to 65536 --------] in D (A:B)
+;;; input:     [         fraction normalized to 65536         ] in D (A:B)
+;;; output:    [         fraction normalized to 65536         ] in D (A:B)
 
 ;;; D = log2(D)
 ;;; approximate log base 2 of a 16 bit integer retaining 12 bits after leading 1
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:     [---------- positive integer <= 65528 ---------] in D (A:B)
-;;; output:    <fbits 11:8><truncd log>[-- fraction bits 7:0 -] in D (A:B)
+;;; input:     [           positive integer <= 65528          ] in D (A:B)
+;;; output:    <fbits 11:8><truncd log>[   fraction bits 7:0  ] in D (A:B)
 log2	macro
 	orcc	#SEC		;inline uint16_t log2(register uint16_t d) {
 	rolb			; register uint1_t c;
@@ -99,8 +99,8 @@ log2ans	exg	a,b		;} // log2()
 ;;; a quick piecewise approximation to log base 10 of a 16 bit integer, times 10
 ;;;
 ;;;        16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:     [---------- positive integer <= 65528 ---------] in D (A:B)
-;;; output:    <fbits 11:8><truncd log>[-- fraction bits 7:0 -] in D (A:B)
+;;; input:     [           positive integer <= 65528          ] in D (A:B)
+;;; output:    <fbits 11:8><truncd log>[   fraction bits 7:0  ] in D (A:B)
 dB10	macro
 	log2
 	anda	#$0f		;register uint14_t dB10(register uint16_t d) {
@@ -116,48 +116,51 @@ dB10	macro
 	endm
 
 ;;; D = normal(S, D)
-;;; normalizes the quantity in D to 2^Stack raised to an optional power
+;;; normalizes the quantity in D to 2^Stack raised to an optional exponent <= 4
 ;;;
-normal macro
-1      tst     ,s		;inline uint16_t normal(uint8_t *s,
-       beq     2f		;register uint16_t d) {
-       lsr     a		; while ((*s)--) {
-       rol     b		;  D /= 2;
-       if \1 > 1
-        lsr    a		;  if (
-        rol    b		;
-        if \1 > 2
-         lsr   a		;
-         rol   b		;
-         if \1 > 3
-          lsr  a		;
-          rol  b		;
-          if \1 > 4
-           lsr a		;
-           rol b		;
-          endif
-         endif
-        endif
-       endif
-       dec     ,s		;
-       bra     1b		;} // normal()
+;;;        16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;; input:     [           positive integer <= 65535          ] in D (A:B)
+;;; output:    [     positive integer <= 65535 / (1 << s)     ] in D (A:B)
+normal	macro
+	tst     ,s		;inline uint16_t normal(uint8_t *s, const expon,
+	beq     2f		;			  register uint16_t d) {
+1	lsr     a		; while ((*s)--) {
+	rol     b		;  d /= 2;
+	if \1 > 1
+	 lsr    a		;  if (expon > 1)
+	 rol    b		;   d /= 2;
+	endif
+	if \1 > 2
+	 lsr    a		;  if (expon > 2)
+	 rol    b		;   d /= 2;
+	endif
+	if \1 > 3
+	 lsr    a		;  if (expon > 3)
+	 rol    b		;   d /= 2;
+	endif
+	if \1 > 4
+	 lsr    a		;  if (expon > 4)
+	 rol    b		;   d /= 2;
+	endif
+	dec     ,s		; } return d;
+	bne     1b		;} // normal()
 2
-       endm
+	endm
 
 ;;; A:B = dB10(A:B)
-;;; calculates the 20 log10 magnitude |1/(1+j*omega/omega0)| =1/sqrt(1+(w/w0)^2)
+;;; calculates the 20 log10 magnitude |1/(1+j*omega/omega0)|= 1/sqrt(1+(w/w0)^2)
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:     [  omega value <= 255  ][   log2 omega0 <= 7   ] in A:B (D)
+;;; input:     [  omega value <= 255  ] 0  0  0  0 [log2 w0<=7] in A:B (D)
 ;;; output:     0  0  0  0 [10log10(H)][   fraction bits 7:0  ] in A:B (D)
 tf1pole	macro
-	andb	#$0f		;{
-	stb	,-s		;
-	tfr	a,b		;
-	mul			;
+	andb	#$0f		;uint16_t tf1pole (uint8_t a, uint8_t b) {
+	stb	,-s		; uint8_t s = b & 0x0f;
+	tfr	a,b		; uint16_t d = a * a;
+	mul			; d = normal (&s, 2, d); // = w*w/w0/w0;
 	normal	2
-	addd	#$0001		; // = -10log10(1+w^2/w0^2)
+	addd	#$0001		; return d d = dB10(++d); // = -10*log10(1+w*w/w0/w0);
 	dB10
-	leas	1,s		;}
+	leas	1,s		;} // tf1pole()
 	endm
 
