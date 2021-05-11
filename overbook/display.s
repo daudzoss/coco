@@ -4,7 +4,7 @@
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
 ;;; input:                                            [cols<=4] in X
 ;;; input:                                            [rows<=5] in Y
-;;; input:  [       pointer to 20-byte array <= 65516         ] in D (A:B)
+;;; input:     [     pointer to 20-byte array <= 65516        ] in D (A:B)
 ;;; output:                                           [cols<=4] in X
 ;;; output:                                           [rows<=5] in Y
 ;;;
@@ -12,10 +12,10 @@
 ;;; input:               X = 3
 ;;;         $01    $04    $02
 ;;; Y = 2   $00    $03    $05 (in memory as $01,$04,$02,$00,$03,$05,...)
-;;;
+;;;                     <----
 ;;; output:       X = 2
-;;;         $02    $05
-;;;         $04    $03
+;;;         $02    $05 |
+;;;         $04    $03 V
 ;;; Y = 3   $01    $00 (in memory as $02,$05,$04,$03,$01,$00,$00,$00,$00,$00...)
 rotate	pshs	y,x		;void rotate(uint16_t*x, uint16_t*y, uint_8* d){
 	tfr	d,x		;
@@ -39,12 +39,12 @@ rotate	pshs	y,x		;void rotate(uint16_t*x, uint16_t*y, uint_8* d){
 2	tfr	pc,y		; } else { // rotate counter?clockwise by 90
 rotate2	leay	rotbuf-rotate2,y;
 	;ldy	#rotbuf
-	bra	3f		;
-rotbuf	rmb	5*4		;  static uint8_t rotbuf[5/*row*/ * 4/*seats*/];
+	bra	3f		;  static uint8_t rotbuf[5/*rows*/ * 4/*cols*/];
+rotbuf	rmb	5*4
 3	sta	3,s		;  *y = a; // new height
 	stb	1,s		;  *x = b; // new width
 	mul			;
-	pshs	b		;  uint8_t s = a*b;
+	pshs	b		;  uint8_t s = a*b;// entries actually populated
 	lda	#5*4		;  for (uint8_t* x=d, int a=19; a >= 0; a--)
 4	deca			;
 	ldb	a,x		;
@@ -55,6 +55,7 @@ rotbuf	rmb	5*4		;  static uint8_t rotbuf[5/*row*/ * 4/*seats*/];
 	tsta			;
 	bne	4b		;   rotbuf[a] = (a < s) ? x[a] : -1;
 	
+	ldb	,s		;
 	leay	d,y		;
 	ldb	1+1,s		;
 	abx			;  for (uint8_t* y = &(rotbuf[a*b - 1]); s; y--)
@@ -65,31 +66,31 @@ rotbuf	rmb	5*4		;  static uint8_t rotbuf[5/*row*/ * 4/*seats*/];
 	sta	,x		;
 	abx			;
 	lda	,x		;    *x = *y;
-	bpl	7b		;   }
+	bpl	7b		;   } // rotated each rotbuf row into a column
 	puls	x		;
 	tst	,s		;
 	bne	6b		;
 	leas	1,s		;
 	lda	3,s		;
 	ldb	1,s		;
-	mul			;
-	abx			;
-	lda	#0		;
-	subb	#5*4		;
-	beq	9f		; for (uint8_t* x = &d[a*b]; x < &d[5*4]; x++)
-	sta	,x+		;
-	decb			;
-	bne	8b		;  *x = 0; // clear out -1 delimiter from rotbuf
-9	puls	x,y		; } // *x and *y dimension updated if 90 degrees
+	mul			;  for (uint8_t* x = &(d[a*b]); x<&(d[5*4]);x++)
+	;lda	#0		;
+8	cmpb	#5*4		;
+	beq	9f		;
+	sta	b,x		;
+	incb			;
+	bra	8b		;   *x = 0;// clear out -1 delimiter from rotbuf
+
+9	puls	x,y		; } // x and y dimension exchanged if 90 degrees
 	rts			;} // rotate()
 
 ;;; CC = toowide(B,X)
-;;;
+;;; set conditions according to whether a card at B of width X fits its section
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:                             [                      ] in D (B)
+;;; input:                             [   col position <= 9  ] in D (B)
 ;;; input:                                            [cols<=4] in X
-;;; output:                            [                      ] in CC
+;;; output:                            [ suitable for BLO/BGE ] in CC
 toowide	abx			;toowide(uint8_t b, uint16_t* x) { // pos,width
 	cmpb	#AISLE2		;
 	blo	1f		;
@@ -103,12 +104,12 @@ toowide	abx			;toowide(uint8_t b, uint16_t* x) { // pos,width
 	rts			;} // toowide()
 
 ;;; CC = toolong(A,Y)
-;;;
+;;; set conditions according to whether a card at A of length Y fits its section
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
-;;; input:  [                      ]                            in D (A)
+;;; input:     [  row position <= 4   ]                         in D (A)
 ;;; input:                                            [rows<=5] in Y
-;;; output:                            [                      ] in CC
+;;; output:                            [ suitable for BLO/BGE ] in CC
 toolong	sty	,--s		;toolong(uint8_t* a, uint16_t y) { // pos,length
 	exg	a,b		;
 	addd	,s++		;
@@ -116,6 +117,13 @@ toolong	sty	,--s		;toolong(uint8_t* a, uint16_t y) { // pos,length
 	cmpa	#1+LASTROW	; return (*a += y) > LASTROW;
 	rts			;} // toolong()
 
+;;; D = pax2scr(A,B)
+;;; return screen offset from upper left to preview passenger seat row a, col b
+;;; (the pax final seat location after moving/rotating is $11=33 greater)
+;;;
+;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;; input:     [  row position <= 4   ][  col position <= 9   ] in D (A:B)
+;;; output:                         [    screen cell <= 511   ] in D (A:B)
 pax2scr	stb	,-s		;uint16_t pax2scr(uint8_t a, uint8_t b) { // r,c
 	lslb			; uint8_t s = b;
 	addb	,s		; b = (b << 1) + s; // b *= SEATWID;
