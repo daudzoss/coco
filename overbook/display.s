@@ -23,11 +23,13 @@ rotbuf	rmb	4*5
 	exg	a,b		;  b = x; // new width
 	ldy	#rotbuf		;  uint8_t* x = d;
 	ldb	#4*5		;  for (b = a * b - 1; b >= 0; b--)
-3	decb			;
-	lda	b,x		;
-	sta	b,y		;
+	pshs	u		;
+3	addb	#-2		;
+	ldu	b,x		;
+	stu	b,y		;
 	tstb			;
 	bne	3b		;   rotbuf[b] = x[b];
+	puls	u		;
 
 ;;; idea: use abx with x as a negative offset to move through buffer?
 
