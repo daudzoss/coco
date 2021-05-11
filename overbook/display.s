@@ -1,8 +1,8 @@
-rotate	pshs	y,x		;void rotate(uint16_t x, uint16_t y, uint_8* d){
+rotate	pshs	y,x		;void rotate(uint16_t*x, uint16_t*y, uint_8* d){
 	tfr	d,x		;
-	lda	1,s		; uint8_t a = x; // old width of card to rotate
-	ldb	3,s		; uint8_t b = y; // old height of card to rotate
-	cmpb	#5		;
+	lda	1,s		; uint8_t a = *x; // old width of card to rotate
+	ldb	3,s		; uint8_t b = *y;// old height of card to rotate
+	cmpb	#4		;
 	bls	2f		; if (b > 4) { // too wide if rotated 90 degrees
 	tfr	x,y		;  uint8_t* x = d, * y = d;
 	mul			;  for (b = a * b - 1; b >= 0; b--) {
@@ -15,14 +15,15 @@ rotate	pshs	y,x		;void rotate(uint16_t x, uint16_t y, uint_8* d){
 	sta	,y+		;
 	tstb			;   *y++ = s;
 	bne	1b		;  } // reversing the array rotated it by 180
+	bra	end_of_function
 	puls	x,y		;  return; // x and y unchanged
 	rts			; } else { // rotate counter?clockwise by 90
-rotbuf	rmb	4*5
-2	sta	3,s		;  static uint8_t rotbuf[4/*cols*/ * 5/*rows*/];
-	stb	1,s		;  a = y; // new height
-	exg	a,b		;  b = x; // new width
+rotbuf	rmb	5*4		;  static uint8_t rotbuf[4/*cols*/ * 5/*rows*/];
+2	sta	3,s		;  *y = a; // new height
+	stb	1,s		;
+	exg	a,b		;  *x = b; // new width
 	ldy	#rotbuf		;  uint8_t* x = d;
-	ldb	#4*5		;  for (b = a * b - 1; b >= 0; b--)
+	ldb	#5*4		;  for (b = a * b - 1; b >= 0; b--)
 	pshs	u		;
 3	addb	#-2		;
 	ldu	b,x		;
