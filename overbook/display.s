@@ -43,11 +43,11 @@ rotbuf	rmb	5*4		;  static uint8_t rotbuf[4/*cols*/ * 5/*rows*/];
 	lda	,-y		;
 	sta	,x		;
 	abx			;
-	lda	,x		;
-	bpl	7b		;    *x = *y;
+	lda	,x		;    *x = *y;
+	bpl	7b		;   }
 	puls	x		;
 	leax	-1,x		;
-	tst	2,s		;   }
+	tst	2,s		;
 	bne	6b		;
 
 ;;; idea: use abx with x as a negative offset to move through buffer?
