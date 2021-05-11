@@ -15,26 +15,41 @@ rotate	pshs	y,x		;void rotate(uint16_t*x, uint16_t*y, uint_8* d){
 	sta	,y+		;
 	tstb			;   *y++ = s;
 	bne	1b		;  } // reversing the array rotated it by 180
-	bra	end_of_function
-	puls	x,y		;  return; // x and y unchanged
-	rts			; } else { // rotate counter?clockwise by 90
+	bra	end_of_function	;  return; // *x and *y dimensions unclobbered
+2	tfr	pc,y		; } else { // rotate counter?clockwise by 90
+rotate2	leay	rotbuf-rotate2,y;
+	;ldy	#rotbuf
+	bra	3f		;
 rotbuf	rmb	5*4		;  static uint8_t rotbuf[4/*cols*/ * 5/*rows*/];
-2	sta	3,s		;  *y = a; // new height
-	stb	1,s		;
-	exg	a,b		;  *x = b; // new width
-	ldy	#rotbuf		;  uint8_t* x = d;
-	ldb	#5*4		;  for (b = a * b - 1; b >= 0; b--)
-	pshs	u		;
-3	addb	#-2		;
-	ldu	b,x		;
-	stu	b,y		;
-	tstb			;
-	bne	3b		;   rotbuf[b] = x[b];
-	puls	u		;
+3	sta	3,s		;  *y = a; // new height
+	stb	1,s		;  *x = b; // new width
+	mul			;
+	lda	#5*4		;  for (uint8_t* x=d, int a=*y * *x - 1; a; a--)
+	 pshs	u		;
+4	adda	#-2		;
+	
+	ldu	a,x		;
+	stu	a,y		;
+	tsta			;
+	bne	4b		;   rotbuf[a] = x[a];
+	 puls	u		;
+	
+	;lda	#0		;
+	 pshs	b		;
+	leay	d,y		;
+	ldb	1+1,s		;
+	abx			;
+	leax	-1,x		;
+5	lda	,-y		;
+	sta	,x		;
+	abx			;
+	lda	,x		;
+	bpl	5b		;
+	
 
 ;;; idea: use abx with x as a negative offset to move through buffer?
 
-
+end_of_function
 	puls	x,y		;
 	rts			;} // rotate()
 
