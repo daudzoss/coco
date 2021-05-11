@@ -9,7 +9,14 @@
 ;;; output:                                           [rows<=5] in Y
 ;;;
 ;;; e.g.
-;;; X = 3
+;;; input:               X = 3
+;;;         $01    $04    $02
+;;; Y = 2   $00    $03    $05 (in memory as $01,$04,$02,$00,$03,$05,...)
+;;;
+;;; output:       X = 2
+;;;         $02    $05
+;;;         $04    $03
+;;; Y = 3   $01    $00 (in memory as $02,$05,$04,$03,$01,$00,$00,$00,$00,$00...)
 rotate	pshs	y,x		;void rotate(uint16_t*x, uint16_t*y, uint_8* d){
 	tfr	d,x		;
 	lda	1,s		; uint8_t a = *x; // old width of card to rotate
@@ -27,7 +34,7 @@ rotate	pshs	y,x		;void rotate(uint16_t*x, uint16_t*y, uint_8* d){
 	sta	,y+		;
 	tstb			;   *y++ = s;
 	bne	1b		;  } // reversing the array rotated it by 180
-	bra	8f		;  // *x and *y dimensions unclobbered
+	bra	9f		;  // *x and *y dimensions unclobbered
 	
 2	tfr	pc,y		; } else { // rotate counter?clockwise by 90
 rotate2	leay	rotbuf-rotate2,y;
@@ -60,12 +67,29 @@ rotbuf	rmb	5*4		;  static uint8_t rotbuf[5/*row*/ * 4/*seats*/];
 	lda	,x		;    *x = *y;
 	bpl	7b		;   }
 	puls	x		;
-	tst	2,s		;
+	tst	,s		;
 	bne	6b		;
-	leas	1,s		; }
-8	puls	x,y		;// *x and *y dimensions updated (if 90 degrees)
+	leas	1,s		;
+	lda	3,s		;
+	ldb	1,s		;
+	mul			;
+	abx			;
+	lda	#0		;
+	subb	#5*4		;
+	beq	9f		; for (uint8_t* x = &d[a*b]; x < &d[5*4]; x++)
+	sta	,x+		;
+	decb			;
+	bne	8b		;  *x = 0; // clear out -1 delimiter from rotbuf
+9	puls	x,y		; } // *x and *y dimension updated if 90 degrees
 	rts			;} // rotate()
 
+;;; CC = toowide(B,X)
+;;;
+;;;
+;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;; input:                             [                      ] in D (B)
+;;; input:                                            [cols<=4] in X
+;;; output:                            [                      ] in CC
 toowide	abx			;toowide(uint8_t b, uint16_t* x) { // pos,width
 	cmpb	#AISLE2		;
 	blo	1f		;
@@ -78,6 +102,13 @@ toowide	abx			;toowide(uint8_t b, uint16_t* x) { // pos,width
 2	cmpx	#AISLE1		; else return (*x += b) >= AISLE1;
 	rts			;} // toowide()
 
+;;; CC = toolong(A,Y)
+;;;
+;;;
+;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;; input:  [                      ]                            in D (A)
+;;; input:                                            [rows<=5] in Y
+;;; output:                            [                      ] in CC
 toolong	sty	,--s		;toolong(uint8_t* a, uint16_t y) { // pos,length
 	exg	a,b		;
 	addd	,s++		;
