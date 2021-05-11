@@ -24,28 +24,31 @@ rotbuf	rmb	5*4		;  static uint8_t rotbuf[4/*cols*/ * 5/*rows*/];
 3	sta	3,s		;  *y = a; // new height
 	stb	1,s		;  *x = b; // new width
 	mul			;
-	lda	#5*4		;  for (uint8_t* x=d, int a=*y * *x - 1; a; a--)
-	 pshs	u		;
-4	adda	#-2		;
-	
-	ldu	a,x		;
-	stu	a,y		;
+	pshs	b		;  uint8_t s = a*b;
+	lda	#5*4		;  for (uint8_t* x=d, int a=19; a >= 0; a--)
+4	deca			;
+	ldb	a,x		;
+	cmpa	,s		;
+	blo	5f		;
+	ldb	#-1		;
+5	stb	a,y		;
 	tsta			;
-	bne	4b		;   rotbuf[a] = x[a];
-	 puls	u		;
-	
-	;lda	#0		;
-	 pshs	b		;
-	leay	d,y		;
+	bne	4b		;   rotbuf[a] = (a < s) ? x[a] : -1;
+	leay	d,y		;  for (uint8_t* y = &(rotbuf[a*b - 1]); s; y--)
 	ldb	1+1,s		;
 	abx			;
-	leax	-1,x		;
-5	lda	,-y		;
+	leax	-1,x		;   for (uint8_t* x = &(d[b-1]); *x>=0; x += b){
+	pshs	x		;
+7	dec	2,s		;    s--;
+	lda	,-y		;
 	sta	,x		;
 	abx			;
 	lda	,x		;
-	bpl	5b		;
-	
+	bpl	7b		;    *x = *y;
+	puls	x		;
+	leax	-1,x		;
+	tst	2,s		;   }
+	bne	6b		;
 
 ;;; idea: use abx with x as a negative offset to move through buffer?
 
