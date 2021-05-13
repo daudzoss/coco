@@ -2,3 +2,4 @@
 	swi
 	
 	include	"structure.s"
+	include "display.s"

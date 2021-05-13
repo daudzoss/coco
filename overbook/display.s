@@ -84,13 +84,14 @@ rotbuf	rmb	5*4
 9	puls	x,y		; } // x and y dimension exchanged if 90 degrees
 	rts			;} // rotate()
 
-;;; CC = toowide(B,X)
+;;; CC,X = toowide(B,X)
 ;;; set conditions according to whether a card at B of width X fits its section
 ;;;
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
 ;;; input:                             [   col position <= 9  ] in D (B)
 ;;; input:                                            [cols<=4] in X
 ;;; output:                            [ suitable for BLO/BGE ] in CC
+;;; output:                                        [B + X <=13] in X
 toowide	abx			;toowide(uint8_t b, uint16_t* x) { // pos,width
 	cmpb	#AISLE2		;
 	blo	1f		;
@@ -110,6 +111,7 @@ toowide	abx			;toowide(uint8_t b, uint16_t* x) { // pos,width
 ;;; input:     [  row position <= 4   ]                         in D (A)
 ;;; input:                                            [rows<=5] in Y
 ;;; output:                            [ suitable for BLO/BGE ] in CC
+;;; output:                                        [A + Y <= 9] in D (B)
 toolong	sty	,--s		;toolong(uint8_t* a, uint16_t y) { // pos,length
 	exg	a,b		;
 	addd	,s++		;
