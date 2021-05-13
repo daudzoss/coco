@@ -50,10 +50,10 @@ rotbuf	rmb	5*4
 	ldb	a,x		;
 	cmpa	,s		;
 	blo	5f		;
-	ldb	#$ff		;
+	ldb	#INVALID	;
 5	stb	a,y		;
 	tsta			;
-	bne	4b		;   rotbuf[a] = (a < s) ? x[a] : -1;
+	bne	4b		;   rotbuf[a] = (a < s) ? x[a] : 0xff;
 	
 	ldb	,s		;
 	leay	d,y		;
@@ -74,7 +74,7 @@ rotbuf	rmb	5*4
 	lda	3,s		;
 	ldb	1,s		;
 	mul			;  for (uint8_t* x = &(d[a*b]); x<&(d[5*4]);x++)
-	;lda	#0		;
+	;lda	#PAXNONE	;
 8	cmpb	#5*4		;
 	beq	9f		;
 	sta	b,x		;
@@ -118,7 +118,27 @@ toolong	sty	,--s		;toolong(uint8_t* a, uint16_t y) { // pos,length
 	exg	a,b		;
 	cmpa	#1+LASTROW	; return (*a += y) > LASTROW;
 	rts			;} // toolong()
-
+	
+;;; CC,D,X,Y = prockey(D,X,Y,S)
+;;;
+;;;
+;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;; input:                                            [cpos<=4] in X
+;;; input:                                            [rpos<=5] in Y
+;;; input:     [pointer to struct {uint8_t r,c; uint8_t* pat;}] in D
+;;; input                              [ input character code ] on stack
+;;; output:                            [ suitable for BLO/BHI ] in CC
+;;; output:    [pointer to struct {uint8_t r,c; uint8_t* pat;}] in D
+;;; output:                                           [cpos<=4] in X
+;;; output:                                           [rpos<=5] in Y
+prockey	pshs	y,x,d		;prockey(uint8_t* d, uint16_t x, uint16_t y,
+	lda	5,s		;
+	ldy	,d		;
+	
+	ldb	3,s		;        uint8_t s8) { uint16_t s4 = y, s2 = x; uint8_t* s = d;
+	ldx	1,d		;
+procend	rts			;} //prockey()
+	
 ;;; D = pax2scr(A,B)
 ;;; return screen offset from upper left to preview passenger seat row a, col b
 ;;; (the pax final seat location after moving/rotating is $11=33 greater)
