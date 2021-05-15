@@ -125,20 +125,42 @@ toolong	sty	,--s		;toolong(uint8_t* a, uint16_t y) { // pos,length
 ;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
 ;;; input:                                            [cpos<=4] in X
 ;;; input:                                            [rpos<=5] in Y
-;;; input:     [pointer to struct {uint8_t r,c; uint8_t* pat;}] in D
+;;; input:     [pointer to struct {uint8_t r,c;uint8_t pat[];}] in D
 ;;; input                              [ input character code ] on stack
 ;;; output:                            [ suitable for BLO/BHI ] in CC
 ;;; output:    [pointer to struct {uint8_t r,c; uint8_t* pat;}] in D
 ;;; output:                                           [cpos<=4] in X
 ;;; output:                                           [rpos<=5] in Y
 prockey	pshs	y,x,d		;prockey(uint8_t* d, uint16_t x, uint16_t y,
-	lda	5,s		;
-	ldy	,d		;
-	
-	ldb	3,s		;        uint8_t s8) { uint16_t s4 = y, s2 = x; uint8_t* s = d;
+1	lda	5,s		;        uint8_t s8) { // key scan code above PC
+	ldy	,d		; uint16_t s4 = y, s2 = x; uint8_t s[] = d;
+	jsr	toolong		; uint8_t = toolong(a = s4 & 0x00ff, y = s[0]);
+	bge	procend		; if (t) return t;
+	ldb	3,s		;
 	ldx	1,d		;
-procend	rts			;} //prockey()
+	jsr	toowide		; t = toowide(b = s2 & 0x00ff, x = s[1]);
+	bge	procend		; if (t) return t;
+				; switch (toupper(s8)) {
+				; case 'H':
+				; case 'I':
+				; case 'J':
+				; case 'K':
+				; case 'L':
+				; }
+procend	puls	d,x,y,pc	;} // prockey()
 	
+;;; A,B = seatpax(D,X,Y,S)
+;;;
+;;;         16_15_14_13_12_11_10_ 9_ 8_ 7_ 6_ 5_ 4_ 3_ 2_ 1_ 0_
+;;; input:                                            [cpos<=4] in X
+;;; input:                                            [rpos<=5] in Y
+;;; input:     [pointer to struct {uint8_t r,c;uint8_t pat[];}] in D
+;;; input:     [pointer to struct {uint8_t v;uint8_t s[],b[];}] on stack
+;;; output:    [ #vouchers remaining  ][   #pax just bounced  ] in D (A:B)
+seatpax	pushs	y,x,d		;uint16_t seatpax(uint8_t* d, uint16_t x,
+	
+	puls	d,x,y,pc	;} // seatpax()
+
 ;;; D = pax2scr(A,B)
 ;;; return screen offset from upper left to preview passenger seat row a, col b
 ;;; (the pax final seat location after moving/rotating is $11=33 greater)
