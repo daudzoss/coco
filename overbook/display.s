@@ -157,7 +157,7 @@ procend	puls	d,x,y,pc	;} // prockey()
 ;;; input:     [pointer to struct {uint8_t r,c;uint8_t pat[];}] in D
 ;;; input:     [pointer to struct {uint8_t v;uint8_t s[],b[];}] on stack
 ;;; output:    [ #vouchers remaining  ][   #pax just bounced  ] in D (A:B)
-seatpax	pushs	y,x,d		;uint16_t seatpax(uint8_t* d, uint16_t x,
+seatpax	pushs	y,x,d		;int16_t seatpax(uint8_t* d, uint16_t x,
 	
 	puls	d,x,y,pc	;} // seatpax()
 
