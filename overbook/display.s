@@ -158,7 +158,22 @@ procend	puls	d,x,y,pc	;} // prockey()
 ;;; input:     [pointer to struct {uint8_t v;uint8_t s[],b[];}] on stack
 ;;; output:    [ #vouchers remaining  ][   #pax just bounced  ] in D (A:B)
 seatpax	pushs	y,x,d		;int16_t seatpax(uint8_t* d, uint16_t x,
-	
+	tfr	y,d		;                uint16_t y, uint8*t s8) {
+	lda	#WINDOW3+1	; uint16_t s4 = y, s2 = x, * s = d;
+	mul			;
+	abx			; uint16_t x = s2 + 10*s4; // UL seat offset
+	ldy			;
+	leay	2,y		; uint8_t* y = s + 2; // start of card pattern
+	ldd	8,s		;
+	addd	#1		; uint8_t* d = s8 + 1; // start of seat memory
+	tst	d,x		; for ()
+	bne	2f		;  if (d[1+x] /*seat is already occupied*/ &&
+	tst	,y		;
+	bne	2f		;      *y /*card requires a passenger there*/ &&
+	tst	-1,d		;
+	bne	2f		;      d[0] /*no vouchers remaining*/)
+	ldd
+2	
 	puls	d,x,y,pc	;} // seatpax()
 
 ;;; D = pax2scr(A,B)
